@@ -1,5 +1,6 @@
+// lib/api.ts
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
-import { LoginCredentials, LoginResponse, ApiResponse, User, RegisterData, ApiError } from '@/types/auth';
+import { LoginCredentials, User, RegisterData } from '@/types/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -12,18 +13,16 @@ class ApiService {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
             },
-            withCredentials: true,
+            withCredentials: true, // QUAN TRỌNG: để gửi và nhận cookie
         });
 
-        // Request interceptor
+        // Request interceptor - KHÔNG cần thêm token vào header
         this.api.interceptors.request.use(
             (config: InternalAxiosRequestConfig) => {
-                if (typeof window !== 'undefined') {
-                    const token = localStorage.getItem('access_token');
-                    if (token && config.headers) {
-                        config.headers.Authorization = `Bearer ${token}`;
-                    }
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, config.data);
                 }
                 return config;
             },
@@ -34,11 +33,20 @@ class ApiService {
 
         // Response interceptor
         this.api.interceptors.response.use(
-            (response) => response,
-            (error: AxiosError<ApiError>) => {
+            (response) => {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
+                }
+                return response;
+            },
+            (error: AxiosError) => {
+                if (process.env.NODE_ENV === 'development') {
+                    console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
+                }
+
+                // Xử lý lỗi 401 - Cookie đã hết hạn
                 if (error.response?.status === 401 && typeof window !== 'undefined') {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('user');
+                    // Chỉ redirect, không cần xóa localStorage vì không dùng
                     if (!window.location.pathname.includes('/login')) {
                         window.location.href = '/login';
                     }
@@ -49,9 +57,14 @@ class ApiService {
     }
 
     // Auth endpoints
-    async login(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
-        const response = await this.api.post<{ token: string; user: User }>('/login', credentials);
-        return response.data; // Laravel trả về { token, user }
+    async login(credentials: LoginCredentials): Promise<{ user: User; message: string }> {
+        // Nếu dùng Sanctum, cần lấy CSRF cookie trước (chỉ 1 lần)
+        await axios.get('http://localhost:8000/sanctum/csrf-cookie', {
+            withCredentials: true
+        });
+
+        const response = await this.api.post<{ user: User; message: string }>('/login', credentials);
+        return response.data;
     }
 
     async logout(): Promise<{ message: string }> {
@@ -61,7 +74,7 @@ class ApiService {
 
     async register(userData: RegisterData): Promise<User> {
         const response = await this.api.post<User>('/register', userData);
-        return response.data; // Laravel trả về user trực tiếp
+        return response.data;
     }
 
     async getUser(): Promise<{ data: User }> {
@@ -94,7 +107,7 @@ class ApiService {
 // Tạo instance và export
 export const apiService = new ApiService();
 
-// Export các hàm tiện ích cho React Query
+// Export các hàm tiện ích
 export const authAPI = {
     login: (credentials: LoginCredentials) => apiService.login(credentials),
     logout: () => apiService.logout(),
