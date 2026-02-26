@@ -34,7 +34,6 @@ export const useAuth = () => {
             router.push('/dashboard');
             return response;
         } catch (error: any) {
-            console.error('Login error:', error);
             throw error;
         } finally {
             setIsLoggingIn(false);
@@ -45,7 +44,6 @@ export const useAuth = () => {
         try {
             await authAPI.logout();
         } catch (error) {
-            console.error('Logout error:', error);
         } finally {
             setUser(null);
             router.push('/login');

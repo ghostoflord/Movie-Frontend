@@ -22,7 +22,6 @@ class ApiService {
         this.api.interceptors.request.use(
             (config: InternalAxiosRequestConfig) => {
                 if (process.env.NODE_ENV === 'development') {
-                    console.log(`🚀 ${config.method?.toUpperCase()} ${config.url}`, config.data);
                 }
                 return config;
             },
@@ -35,13 +34,11 @@ class ApiService {
         this.api.interceptors.response.use(
             (response) => {
                 if (process.env.NODE_ENV === 'development') {
-                    console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
                 }
                 return response;
             },
             (error: AxiosError) => {
                 if (process.env.NODE_ENV === 'development') {
-                    console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error.response?.data || error.message);
                 }
 
                 // Xử lý lỗi 401 - Cookie đã hết hạn
