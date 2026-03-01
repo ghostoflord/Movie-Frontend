@@ -9,8 +9,8 @@ export interface RegisterData {
     name: string;
     email: string;
     password: string;
-    password_confirmation: string;
-    gender?: 'MALE' | 'FEMALE' | 'OTHER';
+    // password_confirmation: string;
+    // gender?: 'MALE' | 'FEMALE' | 'OTHER';
 }
 
 export interface User {
