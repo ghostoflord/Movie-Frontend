@@ -53,14 +53,15 @@ class ApiService {
         );
     }
 
-    // Auth endpoints
     async login(credentials: LoginCredentials): Promise<{ user: User; message: string }> {
-        // Nếu dùng Sanctum, cần lấy CSRF cookie trước (chỉ 1 lần)
-        await axios.get('http://localhost:8000/sanctum/csrf-cookie', {
+        await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/sanctum/csrf-cookie`, {
             withCredentials: true
         });
+        const response = await this.api.post<{ user: User; message: string }>(
+            '/login',
+            credentials
+        );
 
-        const response = await this.api.post<{ user: User; message: string }>('/login', credentials);
         return response.data;
     }
 

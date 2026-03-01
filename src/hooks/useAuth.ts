@@ -1,13 +1,14 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { authAPI } from '@/lib/api';
-import { User } from '@/types/auth';
+import { User, RegisterData } from '@/types/auth';
 
 export const useAuth = () => {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [isRegistering, setIsRegistering] = useState(false); // Thêm state cho register
 
     // Kiểm tra user từ cookie khi component mount
     useEffect(() => {
@@ -40,10 +41,25 @@ export const useAuth = () => {
         }
     };
 
+    const register = async (userData: RegisterData) => {
+        setIsRegistering(true);
+        try {
+            const user = await authAPI.register(userData);
+            setUser(user);
+            router.push('/dashboard');
+            return user;
+        } catch (error: any) {
+            throw error;
+        } finally {
+            setIsRegistering(false);
+        }
+    };
+
     const logout = async () => {
         try {
             await authAPI.logout();
         } catch (error) {
+            console.error('Logout error:', error);
         } finally {
             setUser(null);
             router.push('/login');
@@ -54,7 +70,9 @@ export const useAuth = () => {
         user,
         isLoading,
         isLoggingIn,
+        isRegistering, // Export state register
         login,
+        register, // Export function register
         logout,
         isAuthenticated: !!user,
     };
