@@ -14,14 +14,13 @@ export default function RegisterPage() {
         password: '',
     });
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState(''); // Thêm state cho message thành công
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccessMessage('');
 
-        // Validation cơ bản
         if (!formData.name.trim()) {
             setError('Vui lòng nhập tên');
             return;
@@ -32,23 +31,19 @@ export default function RegisterPage() {
         }
 
         try {
-            const response = await register(formData);
-            
-            // Kiểm tra nếu đăng ký thành công (status 201)
-            if (response?.status === 201) {
-                setSuccessMessage('Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...');
-                
-                // Redirect sang trang login sau 2 giây
-                setTimeout(() => {
-                    router.push('/login');
-                }, 2000);
-            }
+            await register(formData);
+            router.push('/');
         } catch (err: any) {
             console.error('Register error:', err);
-            setError(err.response?.data?.message || 'Đăng ký thất bại');
+            const message = err.response?.data?.message;
+            if (message?.includes('email has already been taken')) {
+                setError('Email này đã được đăng ký');
+            } else {
+                setError(message || 'Đăng ký thất bại');
+            }
         }
     };
-
+    
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">

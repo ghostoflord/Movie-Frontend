@@ -19,7 +19,10 @@ export default function LoginPage() {
         setError('');
 
         try {
-            await login(formData);
+                  const response = await login(formData);
+                    if (response) {
+                router.push('/dashboard');
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Email hoặc mật khẩu không đúng!');
         }
