@@ -61,7 +61,6 @@ class ApiService {
             '/login',
             credentials
         );
-
         return response.data;
     }
 
