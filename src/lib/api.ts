@@ -1,51 +1,46 @@
-// lib/api.ts
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
+// lib/api.ts - SỬA LẠI
+import axios, { AxiosError } from 'axios';
 import { LoginCredentials, User, RegisterData } from '@/types/auth';
+import { useAuthStore } from '@/hooks/useAuthStore';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 class ApiService {
-    private api: AxiosInstance;
+    private api = axios.create({
+        baseURL: API_URL,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+    });
 
     constructor() {
-        this.api = axios.create({
-            baseURL: API_URL,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            withCredentials: true, // QUAN TRỌNG: để gửi và nhận cookie
-        });
-
-        // Request interceptor - KHÔNG cần thêm token vào header
+        // ✅ REQUEST INTERCEPTOR - Lấy token từ store
         this.api.interceptors.request.use(
-            (config: InternalAxiosRequestConfig) => {
-                if (process.env.NODE_ENV === 'development') {
+            (config) => {
+                // Lấy token từ store thay vì localStorage
+                const token = useAuthStore.getState().token;
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
                 }
                 return config;
             },
-            (error: AxiosError) => {
-                return Promise.reject(error);
-            }
+            (error) => Promise.reject(error)
         );
 
-        // Response interceptor
+        // ✅ RESPONSE INTERCEPTOR - Xử lý 401
         this.api.interceptors.response.use(
-            (response) => {
-                if (process.env.NODE_ENV === 'development') {
-                }
-                return response;
-            },
+            (response) => response,
             (error: AxiosError) => {
-                if (process.env.NODE_ENV === 'development') {
-                }
-
-                // Xử lý lỗi 401 - Cookie đã hết hạn
-                if (error.response?.status === 401 && typeof window !== 'undefined') {
-                    // Chỉ redirect, không cần xóa localStorage vì không dùng
-                    if (!window.location.pathname.includes('/login')) {
-                        window.location.href = '/login';
+                if (error.response?.status === 401) {
+                    // Token hết hạn - logout qua store
+                    if (typeof window !== 'undefined') {
+                        useAuthStore.getState().logout();
+                        
+                        if (!window.location.pathname.includes('/login')) {
+                            window.location.href = '/login';
+                        }
                     }
                 }
                 return Promise.reject(error);
@@ -53,34 +48,34 @@ class ApiService {
         );
     }
 
-    async login(credentials: LoginCredentials): Promise<{ user: User; message: string }> {
-        await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/sanctum/csrf-cookie`, {
-            withCredentials: true
-        });
-        const response = await this.api.post<{ user: User; message: string }>(
+    // ✅ LOGIN
+    async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
+        const response = await this.api.post<{ user: User; token: string }>(
             '/login',
             credentials
         );
-
         return response.data;
     }
 
+    // ✅ LOGOUT
     async logout(): Promise<{ message: string }> {
         const response = await this.api.post<{ message: string }>('/logout');
         return response.data;
     }
 
-    async register(userData: RegisterData): Promise<User> {
-        const response = await this.api.post<User>('/register', userData);
+    // ✅ REGISTER
+    async register(userData: RegisterData): Promise<{ user: User; token: string }> {
+        const response = await this.api.post<{ user: User; token: string }>('/register', userData);
         return response.data;
     }
 
+    // ✅ GET USER
     async getUser(): Promise<{ data: User }> {
         const response = await this.api.get<{ data: User }>('/user');
         return response.data;
     }
 
-    // Generic CRUD methods
+    // Generic methods
     async get<T = any>(url: string, params?: any): Promise<T> {
         const response = await this.api.get<T>(url, { params });
         return response.data;
@@ -102,10 +97,8 @@ class ApiService {
     }
 }
 
-// Tạo instance và export
 export const apiService = new ApiService();
 
-// Export các hàm tiện ích
 export const authAPI = {
     login: (credentials: LoginCredentials) => apiService.login(credentials),
     logout: () => apiService.logout(),

@@ -1,79 +1,30 @@
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { authAPI } from '@/lib/api';
-import { User, RegisterData } from '@/types/auth';
+import { useAuthStore } from '@/hooks/useAuthStore';
 
 export const useAuth = () => {
-    const router = useRouter();
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
-    const [isRegistering, setIsRegistering] = useState(false); // Thêm state cho register
-
-    // Kiểm tra user từ cookie khi component mount
-    useEffect(() => {
-        checkUser();
-    }, []);
-
-    const checkUser = async () => {
-        try {
-            const response = await authAPI.getUser();
-            setUser(response.data);
-        } catch (error) {
-            // User chưa login - không sao
-            setUser(null);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const login = async (credentials: { email: string; password: string }) => {
-        setIsLoggingIn(true);
-        try {
-            const response = await authAPI.login(credentials);
-            setUser(response.user);
-            router.push('/dashboard');
-            return response;
-        } catch (error: any) {
-            throw error;
-        } finally {
-            setIsLoggingIn(false);
-        }
-    };
-
-    const register = async (userData: RegisterData) => {
-        setIsRegistering(true);
-        try {
-            const user = await authAPI.register(userData);
-            setUser(user);
-            router.push('/dashboard');
-            return user;
-        } catch (error: any) {
-            throw error;
-        } finally {
-            setIsRegistering(false);
-        }
-    };
-
-    const logout = async () => {
-        try {
-            await authAPI.logout();
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            setUser(null);
-            router.push('/login');
-        }
-    };
+    const { 
+        user, 
+        token,
+        isLoading, 
+        isLoggingIn, 
+        isRegistering,
+        login, 
+        register, 
+        logout,
+    } = useAuthStore();
 
     return {
         user,
+        token,
         isLoading,
         isLoggingIn,
-        isRegistering, // Export state register
+        isRegistering,
+        
+        // Actions
         login,
-        register, // Export function register
+        register,
         logout,
-        isAuthenticated: !!user,
+        
+        // Computed
+        isAuthenticated: !!user && !!token,
     };
 };
