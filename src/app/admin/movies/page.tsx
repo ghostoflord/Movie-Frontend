@@ -27,10 +27,6 @@ export default function MoviesPage() {
             });
             const data = await res.json();
 
-            // ✅ DEBUG: Xem API trả về cái gì
-            console.log('API Response:', data);
-
-            // ✅ XỬ LÝ LINH HOẠT
             if (Array.isArray(data)) {
                 // Nếu là mảng thì dùng trực tiếp
                 setMovies(data);
@@ -44,12 +40,10 @@ export default function MoviesPage() {
                 setMovies(data.movies);
             }
             else if (data && typeof data === 'object' && data.id) {
-                // Nếu API chỉ trả về 1 phim (đang bị lỗi)
-                console.warn('⚠️ API chỉ trả về 1 phim, đang chuyển thành mảng');
-                setMovies([data]); // ✅ Chuyển object thành mảng
+                setMovies([data]);
             }
             else {
-                console.error('❌ Dữ liệu không đúng định dạng:', data);
+                console.error(' Dữ liệu không đúng định dạng:', data);
                 setMovies([]);
             }
 
@@ -85,7 +79,6 @@ export default function MoviesPage() {
         );
     }
 
-    // ✅ Kiểm tra movies có phải mảng không trước khi render
     if (!Array.isArray(movies)) {
         console.error('Movies is not an array:', movies);
         return (
