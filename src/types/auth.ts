@@ -24,7 +24,7 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
-    status:number;
+    status: number;
 }
 
 export interface LoginResponse {
@@ -43,4 +43,8 @@ export interface ApiError {
     errors?: {
         [key: string]: string[];
     };
+}
+
+export interface Movie {
+    data: string;
 }

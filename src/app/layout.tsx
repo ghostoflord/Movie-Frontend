@@ -7,7 +7,7 @@ import Providers from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Test Laravel API',
+  title: 'Movie',
   description: 'Testing Next.js with Laravel API',
 };
 
