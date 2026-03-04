@@ -46,7 +46,7 @@ export default function AdminLayout({
                 </div>
 
                 {/* Content - 60% */}
-                <main className="w-1/5 h-full overflow-auto p-6">
+                <main className="w-3/5 h-full w-full">
                     {children}
                 </main>
             </div>
