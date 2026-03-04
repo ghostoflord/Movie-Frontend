@@ -5,6 +5,9 @@ import { Fragment } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Bars3Icon from '../icons/Bars3Icon';
 import BellIcon from '../icons/BellIcon';
+import Link from 'next/link';
+import FilmIcon from '../icons/FilmIcon';
+import XMarkIcon from '../icons/XMarkIcon';
 
 interface HeaderProps {
     sidebarOpen: boolean;
@@ -16,7 +19,22 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: HeaderProps
 
     return (
         <header className="sticky top-0 z-40 bg-gray-800 border-b border-gray-700">
+
+
             <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+                {/* Logo area */}
+                <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700">
+                    <Link href="/admin" className="flex items-center space-x-2">
+                        <FilmIcon className="h-8 w-8 text-red-500" />
+                        <span className="text-xl font-bold text-white">MovieAdmin</span>
+                    </Link>
+                    <button
+                        onClick={() => setSidebarOpen(false)}
+                        className="lg:hidden text-gray-400 hover:text-white"
+                    >
+                        <XMarkIcon className="h-6 w-6" />
+                    </button>
+                </div>
                 {/* Mobile menu button */}
                 <button
                     onClick={() => setSidebarOpen(true)}
