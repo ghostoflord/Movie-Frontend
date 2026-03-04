@@ -10,17 +10,6 @@ import FolderIcon from '../icons/FolderIcon';
 import StarIcon from '../icons/StarIcon';
 import Cog6ToothIcon from '../icons/Cog6ToothIcon';
 import XMarkIcon from '../icons/XMarkIcon';
-// import {
-//     HomeIcon,
-//     FilmIcon,
-//     UsersIcon,
-//     FolderIcon,
-//     VideoCameraIcon,
-//     Cog6ToothIcon,
-//     ArrowLeftOnRectangleIcon,
-//     StarIcon,
-//     XMarkIcon
-// } from '@/components/icons'; // Import từ thư mục icons
 
 const navigation = [
     { name: 'Dashboard', href: '/admin', icon: HomeIcon },
@@ -28,7 +17,7 @@ const navigation = [
     { name: 'Quản lý tập phim', href: '/admin/episodes', icon: VideoCameraIcon },
     { name: 'Quản lý user', href: '/admin/users', icon: UserIcon },
     { name: 'Thể loại', href: '/admin/categories', icon: FolderIcon },
-    { name: 'Đánh giá', href: '/admin/reviews', icon: StarIcon }, // Thêm StarIcon
+    { name: 'Đánh giá', href: '/admin/reviews', icon: StarIcon },
     { name: 'Cài đặt', href: '/admin/settings', icon: Cog6ToothIcon },
 ];
 
@@ -44,21 +33,20 @@ export default function AdminSidebar({ sidebarOpen, setSidebarOpen }: SidebarPro
         <>
             {/* Mobile sidebar overlay */}
             <div
-                className={`fixed inset-0 z-50 bg-gray-900/80 lg:hidden ${sidebarOpen ? 'block' : 'hidden'
-                    }`}
+                className={`fixed inset-0 z-50 bg-gray-900/80 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}
                 onClick={() => setSidebarOpen(false)}
             />
 
-            {/* Sidebar */}
+            {/* Sidebar - BỎ fixed, BỎ w-72, THÊM w-full */}
             <div
-                className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-gray-900 to-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                className={`h-full w-full bg-gradient-to-b from-gray-900 to-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}
             >
                 {/* Logo area */}
                 <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700">
                     <Link href="/admin" className="flex items-center space-x-2">
-                        <FilmIcon className="h-8 w-8 text-red-500" />
-                        <span className="text-xl font-bold text-white">MovieAdmin</span>
+                        {/* <FilmIcon className="h-8 w-8 text-red-500" />
+                        <span className="text-xl font-bold text-white">MovieAdmin</span> */}
                     </Link>
                     <button
                         onClick={() => setSidebarOpen(false)}
@@ -92,20 +80,6 @@ export default function AdminSidebar({ sidebarOpen, setSidebarOpen }: SidebarPro
                         })}
                     </ul>
                 </nav>
-
-                {/* Logout button */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
-                    <button
-                        onClick={() => {
-                            localStorage.removeItem('token');
-                            window.location.href = '/login';
-                        }}
-                        className="flex items-center px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg w-full transition-colors"
-                    >
-                        {/* <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" /> */}
-                        Đăng xuất
-                    </button>
-                </div>
             </div>
         </>
     );

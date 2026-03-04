@@ -93,9 +93,9 @@ export default function MoviesPage() {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="w-full h-full">
+            {/* Header với padding */}
+            <div className="flex items-center justify-between mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Quản lý phim</h2>
                     <p className="text-gray-400 mt-1">
@@ -111,69 +111,43 @@ export default function MoviesPage() {
                 </Link>
             </div>
 
-            {/* Table */}
-            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            {/* Table container - full width */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden w-full">
                 <table className="w-full">
                     <thead className="bg-gray-700">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                ID
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Tên phim
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Năm
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Tập
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Lượt xem
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Thao tác
-                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tên phim</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Năm</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tập</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Lượt xem</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
-                        {movies.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
-                                    Chưa có phim nào
+                        {movies.map((movie: any) => (
+                            <tr key={movie.id} className="hover:bg-gray-700">
+                                <td className="px-6 py-4 text-sm text-white text-center">{movie.id}</td>
+                                <td className="px-6 py-4 text-sm text-white text-center">{movie.name}</td>
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">{movie.year}</td>
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">
+                                    {movie.episode_current}/{movie.episode_total}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">
+                                    {movie.views?.toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 text-sm">
+                                    <div className="flex items-center justify-center space-x-3 ">
+                                        <Link href={`/admin/movies/${movie.id}/edit`} className="text-blue-500 hover:text-blue-400">
+                                            <PencilIcon className="h-5 w-5" />
+                                        </Link>
+                                        <button onClick={() => deleteMovie(movie.id)} className="text-red-500 hover:text-red-400">
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
-                        ) : (
-                            movies.map((movie: any) => (
-                                <tr key={movie.id} className="hover:bg-gray-700">
-                                    <td className="px-6 py-4 text-sm text-white">{movie.id}</td>
-                                    <td className="px-6 py-4 text-sm text-white">{movie.name}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-300">{movie.year}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-300">
-                                        {movie.episode_current}/{movie.episode_total}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-300">
-                                        {movie.views?.toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">
-                                        <div className="flex items-center space-x-3">
-                                            <Link
-                                                href={`/admin/movies/${movie.id}/edit`}
-                                                className="text-blue-500 hover:text-blue-400"
-                                            >
-                                                <PencilIcon className="h-5 w-5" />
-                                            </Link>
-                                            <button
-                                                onClick={() => deleteMovie(movie.id)}
-                                                className="text-red-500 hover:text-red-400"
-                                            >
-                                                <TrashIcon className="h-5 w-5" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                        ))}
                     </tbody>
                 </table>
             </div>

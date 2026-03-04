@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react'; // Thêm useState
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminHeader from '@/components/admin/header';
@@ -13,7 +13,7 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const { user, isLoading } = useAuth();
-    const [sidebarOpen, setSidebarOpen] = useState(false); // THÊM state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         if (!isLoading && (!user || user.role !== 'ADMIN')) {
@@ -35,17 +35,19 @@ export default function AdminLayout({
 
     return (
         <div className="min-h-screen bg-gray-900">
-            {/* Truyền props vào Sidebar */}
-            <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+            {/* Header */}
+            <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-            <div className="lg:pl-72">
-                {/* Truyền props vào Header */}
-                <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+            {/* Container cho Sidebar và Content - dùng flex để nó nằm ngang */}
+            <div className="flex mt-16 h-[calc(100vh-64px)]">
+                {/* Sidebar - 40% */}
+                <div className="w-2/5 h-full">
+                    <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                </div>
 
-                <main className="py-10">
-                    <div className="px-4 sm:px-6 lg:px-8">
-                        {children}
-                    </div>
+                {/* Content - 60% */}
+                <main className="w-3/5 h-full w-full">
+                    {children}
                 </main>
             </div>
         </div>
