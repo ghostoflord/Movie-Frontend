@@ -127,17 +127,17 @@ export default function MoviesPage() {
                     <tbody className="divide-y divide-gray-700">
                         {movies.map((movie: any) => (
                             <tr key={movie.id} className="hover:bg-gray-700">
-                                <td className="px-6 py-4 text-sm text-white">{movie.id}</td>
-                                <td className="px-6 py-4 text-sm text-white">{movie.name}</td>
-                                <td className="px-6 py-4 text-sm text-gray-300">{movie.year}</td>
-                                <td className="px-6 py-4 text-sm text-gray-300">
+                                <td className="px-6 py-4 text-sm text-white text-center">{movie.id}</td>
+                                <td className="px-6 py-4 text-sm text-white text-center">{movie.name}</td>
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">{movie.year}</td>
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">
                                     {movie.episode_current}/{movie.episode_total}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-300">
+                                <td className="px-6 py-4 text-sm text-gray-300 text-center">
                                     {movie.views?.toLocaleString()}
                                 </td>
                                 <td className="px-6 py-4 text-sm">
-                                    <div className="flex items-center space-x-3">
+                                    <div className="flex items-center justify-center space-x-3 ">
                                         <Link href={`/admin/movies/${movie.id}/edit`} className="text-blue-500 hover:text-blue-400">
                                             <PencilIcon className="h-5 w-5" />
                                         </Link>
