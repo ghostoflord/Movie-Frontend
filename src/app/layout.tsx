@@ -1,14 +1,15 @@
+// app/layout.tsx
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Providers from './providers';
+import Header from '@/components/client/header';
 
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Movie',
-  description: 'Testing Next.js with Laravel API',
+  title: 'OPHIM - Xem phim online miễn phí',
+  description: 'Xem phim online chất lượng cao với phụ đề tiếng Việt',
 };
 
 export default function RootLayout({
@@ -19,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        <Providers>
+        {/* Không cần AuthProvider, dùng Header trực tiếp */}
+        <Header />
+        <main className="pt-16">
           {children}
-        </Providers>
+        </main>
       </body>
     </html>
   );
