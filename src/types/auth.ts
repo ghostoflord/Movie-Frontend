@@ -48,3 +48,7 @@ export interface ApiError {
 export interface Movie {
     data: string;
 }
+
+export interface AuthState {
+    setToken: [];
+}
