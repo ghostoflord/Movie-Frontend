@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PencilIcon from '@/components/icons/PencilIcon';
 import TrashIcon from '@/components/icons/TrashIcon';
+import { movieAPI } from '@/lib/api';
+import { Movie } from '@/types/auth';
 
-
-export default function MovieDetailPage({ params }: { params: { id: string } }) {
+export default function MovieDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
-    const [movie, setMovie] = useState<any>(null);
+    const [movieId, setMovieId] = useState<string | null>(null);
+    const [movie, setMovie] = useState<Movie | null>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -23,17 +25,38 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
         episode_total: '',
     });
 
+    // SỬA: Lấy id từ params Promise
     useEffect(() => {
-        fetchMovie();
-    }, [params.id]);
+        const resolveParams = async () => {
+            const resolvedParams = await params;
+            setMovieId(resolvedParams.id);
+        };
+
+        resolveParams();
+    }, [params]);
+
+    useEffect(() => {
+        if (movieId) {
+            fetchMovie();
+        }
+    }, [movieId]);
 
     const fetchMovie = async () => {
+        if (!movieId) return;
+
         try {
-            // Gọi API lấy chi tiết phim
-            const res = await fetch(`/api/admin/movies/${params.id}`);
-            const data = await res.json();
+            setLoading(true);
+            const data = await movieAPI.getMovie(movieId);
             setMovie(data);
-            setFormData(data);
+            setFormData({
+                name: data.name,
+                origin_name: data.origin_name,
+                description: data.description.replace(/<[^>]*>/g, ''),
+                year: data.year,
+                quality: data.quality,
+                episode_current: data.episode_current,
+                episode_total: data.episode_total,
+            });
         } catch (error) {
             console.error('Failed to fetch movie:', error);
         } finally {
@@ -43,35 +66,27 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            const res = await fetch(`/api/admin/movies/${params.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+        if (!movieId) return;
 
-            if (res.ok) {
-                setIsEditing(false);
-                fetchMovie(); // Refresh data
-            }
+        try {
+            await movieAPI.updateMovie(movieId, formData);
+            setIsEditing(false);
+            await fetchMovie();
         } catch (error) {
             console.error('Failed to update movie:', error);
+            alert('Có lỗi xảy ra khi cập nhật phim');
         }
     };
 
     const handleDelete = async () => {
-        if (!confirm('Bạn có chắc muốn xóa phim này?')) return;
+        if (!movieId || !confirm('Bạn có chắc muốn xóa phim này?')) return;
 
         try {
-            const res = await fetch(`/api/admin/movies/${params.id}`, {
-                method: 'DELETE',
-            });
-
-            if (res.ok) {
-                router.push('/admin/movies');
-            }
+            await movieAPI.deleteMovie(movieId);
+            router.push('/admin/movies');
         } catch (error) {
             console.error('Failed to delete movie:', error);
+            alert('Có lỗi xảy ra khi xóa phim');
         }
     };
 
@@ -96,35 +111,55 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <Link
-                        href="/admin/movies"
-                        className="text-gray-400 hover:text-white"
-                    >
-                        {/* <ArrowLeftIcon className="h-6 w-6" /> */}
-                    </Link>
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">{movie.name}</h2>
-                        <p className="text-gray-400 mt-1">{movie.origin_name}</p>
+            {/* Header với thông tin phim và ảnh */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <div className="flex items-start space-x-6">
+                    {/* Poster image */}
+                    {movie.poster_url && (
+                        <img
+                            src={movie.poster_url}
+                            alt={movie.name}
+                            className="w-32 h-48 object-cover rounded-lg"
+                        />
+                    )}
+
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">{movie.name}</h2>
+                                <p className="text-gray-400 mt-1">{movie.origin_name}</p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                >
+                                    <PencilIcon className="h-5 w-5 mr-2" />
+                                    {isEditing ? 'Hủy' : 'Sửa'}
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                >
+                                    <TrashIcon className="h-5 w-5 mr-2" />
+                                    Xóa
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Status badges */}
+                        <div className="flex space-x-2 mt-4">
+                            <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">
+                                {movie.status}
+                            </span>
+                            <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
+                                {movie.quality}
+                            </span>
+                            <span className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full">
+                                {movie.year}
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                    <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                        <PencilIcon className="h-5 w-5 mr-2" />
-                        {isEditing ? 'Hủy' : 'Sửa'}
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                    >
-                        <TrashIcon className="h-5 w-5 mr-2" />
-                        Xóa
-                    </button>
                 </div>
             </div>
 
@@ -187,6 +222,28 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
                                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                Tập hiện tại
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.episode_current}
+                                onChange={(e) => setFormData({ ...formData, episode_current: e.target.value })}
+                                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                Tổng số tập
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.episode_total}
+                                onChange={(e) => setFormData({ ...formData, episode_total: e.target.value })}
+                                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                            />
+                        </div>
                     </div>
                     <div className="mt-6 flex justify-end">
                         <button
@@ -226,8 +283,25 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
                         </div>
                         <div className="col-span-2">
                             <dt className="text-sm font-medium text-gray-400">Mô tả</dt>
-                            <dd className="mt-1 text-sm text-white">{movie.description}</dd>
+                            <dd className="mt-1 text-sm text-white"
+                                dangerouslySetInnerHTML={{ __html: movie.description }} />
                         </div>
+
+                        {/* Hiển thị episodes nếu có */}
+                        {movie.episodes && movie.episodes.length > 0 && (
+                            <div className="col-span-2">
+                                <dt className="text-sm font-medium text-gray-400 mb-2">Tập phim</dt>
+                                <dd className="mt-1">
+                                    <div className="flex flex-wrap gap-2">
+                                        {movie.episodes.map((ep) => (
+                                            <span key={ep.id} className="px-3 py-1 bg-gray-700 text-white text-sm rounded">
+                                                Tập {ep.episode_number}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </dd>
+                            </div>
+                        )}
                     </dl>
                 </div>
             )}
