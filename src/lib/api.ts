@@ -1,6 +1,6 @@
 // lib/api.ts - SỬA LẠI
 import axios, { AxiosError } from 'axios';
-import { LoginCredentials, User, RegisterData } from '@/types/auth';
+import { LoginCredentials, User, RegisterData, Movie } from '@/types/auth';
 import { useAuthStore } from '@/hooks/useAuthStore';
 
 
@@ -16,7 +16,7 @@ class ApiService {
     });
 
     constructor() {
-        // ✅ REQUEST INTERCEPTOR - Lấy token từ store
+        //REQUEST INTERCEPTOR - Lấy token từ store
         this.api.interceptors.request.use(
             (config) => {
                 // Lấy token từ store thay vì localStorage
@@ -29,7 +29,7 @@ class ApiService {
             (error) => Promise.reject(error)
         );
 
-        // ✅ RESPONSE INTERCEPTOR - Xử lý 401
+        // RESPONSE INTERCEPTOR - Xử lý 401
         this.api.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
@@ -37,7 +37,7 @@ class ApiService {
                     // Token hết hạn - logout qua store
                     if (typeof window !== 'undefined') {
                         useAuthStore.getState().logout();
-                        
+
                         if (!window.location.pathname.includes('/login')) {
                             window.location.href = '/login';
                         }
@@ -48,7 +48,6 @@ class ApiService {
         );
     }
 
-    // ✅ LOGIN
     async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
         const response = await this.api.post<{ user: User; token: string }>(
             '/login',
@@ -57,19 +56,19 @@ class ApiService {
         return response.data;
     }
 
-    // ✅ LOGOUT
+    // LOGOUT
     async logout(): Promise<{ message: string }> {
         const response = await this.api.post<{ message: string }>('/logout');
         return response.data;
     }
 
-    // ✅ REGISTER
+    // REGISTER
     async register(userData: RegisterData): Promise<{ user: User; token: string }> {
         const response = await this.api.post<{ user: User; token: string }>('/register', userData);
         return response.data;
     }
 
-    // ✅ GET USER
+    // GET USER
     async getUser(): Promise<{ data: User }> {
         const response = await this.api.get<{ data: User }>('/user');
         return response.data;
@@ -104,6 +103,28 @@ export const authAPI = {
     logout: () => apiService.logout(),
     register: (userData: RegisterData) => apiService.register(userData),
     getUser: () => apiService.getUser(),
+};
+
+export const movieAPI = {
+    // Lấy danh sách phim
+    getMovies: (params?: any) =>
+        apiService.get<{ data: Movie[] }>('/movies', params),
+
+    // Lấy chi tiết phim
+    getMovie: (id: string) =>
+        apiService.get<Movie>(`/movies/${id}`),
+
+    // Tạo phim mới
+    createMovie: (data: Partial<Movie>) =>
+        apiService.post<Movie>('/movies', data),
+
+    // Cập nhật phim
+    updateMovie: (id: string, data: Partial<Movie>) =>
+        apiService.put<Movie>(`/movies/${id}`, data),
+
+    // Xóa phim
+    deleteMovie: (id: string) =>
+        apiService.delete(`/movies/${id}`),
 };
 
 export default apiService;
