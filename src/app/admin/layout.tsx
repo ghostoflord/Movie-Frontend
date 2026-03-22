@@ -23,8 +23,8 @@ export default function AdminLayout({
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+            <div className="flex min-h-screen items-center justify-center bg-[#0b0d12]">
+                <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-600" />
             </div>
         );
     }
@@ -34,19 +34,13 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            {/* Header */}
+        <div className="min-h-screen bg-[#0b0d12] text-zinc-100">
             <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-            {/* Container cho Sidebar và Content - dùng flex để nó nằm ngang */}
-            <div className="flex mt-16 h-[calc(100vh-64px)]">
-                {/* Sidebar - 40% */}
-                <div className="w-2/5 h-full">
-                    <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                </div>
+            <div className="flex pt-16">
+                <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-                {/* Content - 60% */}
-                <main className="w-3/5 h-full w-full">
+                <main className="min-h-[calc(100vh-4rem)] w-full min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
                     {children}
                 </main>
             </div>

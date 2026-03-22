@@ -9,10 +9,14 @@ import UserIcon from '../icons/UserIcon';
 import FolderIcon from '../icons/FolderIcon';
 import StarIcon from '../icons/StarIcon';
 import Cog6ToothIcon from '../icons/Cog6ToothIcon';
-import XMarkIcon from '../icons/XMarkIcon';
 
-const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: HomeIcon },
+const navigation: {
+    name: string;
+    href: string;
+    icon: typeof HomeIcon;
+    exact?: boolean;
+}[] = [
+    { name: 'Dashboard', href: '/admin', icon: HomeIcon, exact: true },
     { name: 'Quản lý phim', href: '/admin/movies', icon: FilmIcon },
     { name: 'Quản lý tập phim', href: '/admin/episodes', icon: VideoCameraIcon },
     { name: 'Quản lý user', href: '/admin/users', icon: UserIcon },
@@ -29,50 +33,54 @@ interface SidebarProps {
 export default function AdminSidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
     const pathname = usePathname();
 
+    const isActiveLink = (href: string, exact?: boolean) => {
+        if (exact) return pathname === href;
+        return pathname === href || pathname.startsWith(`${href}/`);
+    };
+
     return (
         <>
-            {/* Mobile sidebar overlay */}
-            <div
-                className={`fixed inset-0 z-50 bg-gray-900/80 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}
-                onClick={() => setSidebarOpen(false)}
-            />
+            {/* Mobile backdrop */}
+            {sidebarOpen ? (
+                <button
+                    type="button"
+                    aria-label="Đóng menu"
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            ) : null}
 
-            {/* Sidebar - BỎ fixed, BỎ w-72, THÊM w-full */}
-            <div
-                className={`h-full w-full bg-gradient-to-b from-gray-900 to-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
+            <aside
+                className={[
+                    'fixed left-0 top-16 z-50 flex h-[calc(100vh-4rem)] w-64 flex-col border-r border-zinc-800/90 bg-[#0f1117]',
+                    'transition-transform duration-200 ease-out',
+                    sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                    'lg:static lg:z-0 lg:translate-x-0',
+                ].join(' ')}
             >
-                {/* Logo area */}
-                <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700">
-                    <Link href="/admin" className="flex items-center space-x-2">
-                        {/* <FilmIcon className="h-8 w-8 text-red-500" />
-                        <span className="text-xl font-bold text-white">MovieAdmin</span> */}
-                    </Link>
-                    <button
-                        onClick={() => setSidebarOpen(false)}
-                        className="lg:hidden text-gray-400 hover:text-white"
-                    >
-                        <XMarkIcon className="h-6 w-6" />
-                    </button>
+                <div className="border-b border-zinc-800/80 px-4 py-4 lg:hidden">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Menu</p>
                 </div>
 
-                {/* Navigation */}
-                <nav className="mt-6 px-4">
-                    <ul className="space-y-2">
+                <nav className="flex-1 overflow-y-auto px-3 py-4">
+                    <ul className="space-y-1">
                         {navigation.map((item) => {
-                            const isActive = pathname === item.href;
+                            const active = isActiveLink(item.href, item.exact);
                             const Icon = item.icon;
 
                             return (
                                 <li key={item.name}>
                                     <Link
                                         href={item.href}
-                                        className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all ${isActive
-                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
-                                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                            }`}
+                                        onClick={() => setSidebarOpen(false)}
+                                        className={[
+                                            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                                            active
+                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-900/20'
+                                                : 'text-zinc-400 hover:bg-zinc-800/80 hover:text-white',
+                                        ].join(' ')}
                                     >
-                                        <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                                        <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-white' : 'text-zinc-500'}`} />
                                         {item.name}
                                     </Link>
                                 </li>
@@ -80,7 +88,11 @@ export default function AdminSidebar({ sidebarOpen, setSidebarOpen }: SidebarPro
                         })}
                     </ul>
                 </nav>
-            </div>
+
+                <div className="border-t border-zinc-800/80 p-4">
+                    <p className="text-center text-[10px] text-zinc-600">OPHIM Admin</p>
+                </div>
+            </aside>
         </>
     );
 }
