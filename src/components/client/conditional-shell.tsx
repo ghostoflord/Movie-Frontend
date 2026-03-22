@@ -4,13 +4,18 @@ import { usePathname } from 'next/navigation';
 import Header from '@/components/client/header';
 
 /**
- * Trang /admin dùng layout riêng (AdminHeader + sidebar), không dùng header trang chủ.
+ * Không dùng header trang chủ: /admin, đăng nhập / đăng ký / quên mật khẩu.
  */
 export function ConditionalShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isAdmin = pathname?.startsWith('/admin');
 
-    if (isAdmin) {
+    const hideSiteHeader =
+        pathname?.startsWith('/admin') ||
+        pathname === '/login' ||
+        pathname === '/register' ||
+        pathname === '/forgot-password';
+
+    if (hideSiteHeader) {
         return <>{children}</>;
     }
 
