@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
+/* Trang phim luôn dùng nền tối — tránh Chrome/system light mode làm body trắng → chữ trắng biến mất */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b0b0f;
+  --foreground: #f4f4f5;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -12,11 +14,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {

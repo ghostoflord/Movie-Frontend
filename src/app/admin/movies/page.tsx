@@ -11,7 +11,7 @@ import TrashIcon from '@/components/icons/TrashIcon';
 import { Movie } from '@/types/auth';
 import MovieDetailModal from '@/components/modal/movie_detail_modal';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 export default function MoviesPage() {
     const router = useRouter();
