@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, User, ChevronDown, LogOut, Film, Tv, Shield, Heart } from 'lucide-react';
+import { Search, User, ChevronDown, LogOut, Shield, Heart } from 'lucide-react';
 
 export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const { user, logout } = useAuth();
+    const pathname = usePathname();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -25,18 +27,29 @@ export default function Header() {
         { name: 'Hoạt Hình', href: '/hoat-hinh' },
         { name: 'TV Shows', href: '/tv-shows' },
     ];
+
+    const isNavActive = (href: string) => {
+        if (!pathname) return false;
+        if (pathname === href) return true;
+        if (href !== '/' && pathname.startsWith(`${href}/`)) return true;
+        return false;
+    };
     
 
     return (
-        <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-black' : 'bg-gradient-to-b from-black/80 to-transparent'
-            }`}>
-            <div className="container mx-auto px-4">
+        <header
+            className={`fixed top-0 w-full z-50 text-zinc-100 transition-all duration-300 backdrop-blur-md border-b border-white/10 ${isScrolled ? 'bg-black/95' : 'bg-gradient-to-b from-black/90 via-black/40 to-transparent'}`}
+        >
+            <div className="mx-auto max-w-6xl px-4">
                 <div className="flex items-center justify-between h-16">
                     {/* Left section - Logo & Navigation */}
-                    <div className="flex items-center space-x-8">
+                    <div className="flex items-center gap-8">
                         {/* Logo */}
-                        <Link href="/" className="flex items-center">
-                            <span className="text-2xl font-bold text-white tracking-wider">
+                        <Link href="/" className="flex items-center gap-3">
+                            <span className="w-9 h-9 rounded-lg bg-[#e50914] flex items-center justify-center shadow-[0_10px_30px_rgba(229,9,20,0.25)]">
+                                <span className="font-black text-white text-sm tracking-tight">O</span>
+                            </span>
+                            <span className="text-xl md:text-2xl font-black text-white tracking-wider">
                                 OPHIM
                             </span>
                         </Link>
@@ -47,7 +60,10 @@ export default function Header() {
                                 <Link
                                     key={item.name}
                                     href={item.href}
-                                    className="px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                                    className={[
+                                        "relative px-3 py-2 text-sm transition-colors text-zinc-300 hover:text-white after:content-[''] after:absolute after:left-3 after:right-3 after:bottom-1 after:h-[2px] after:rounded-full after:bg-[#e50914] after:origin-left after:scale-x-0 after:transition-transform after:duration-200 hover:after:scale-x-100",
+                                        isNavActive(item.href) ? 'text-white after:scale-x-100' : '',
+                                    ].join(' ')}
                                 >
                                     {item.name}
                                 </Link>
@@ -63,9 +79,9 @@ export default function Header() {
                                 <input
                                     type="text"
                                     placeholder="Tìm kiếm phim..."
-                                    className="w-64 bg-transparent text-white text-sm py-1.5 border-b border-gray-600 focus:border-white outline-none transition-colors placeholder-gray-400"
+                                    className="w-64 rounded-full border border-zinc-600 bg-zinc-900/80 py-2 pl-10 pr-4 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-[#e50914] focus:outline-none"
                                 />
-                                <Search className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={17} />
                             </div>
                         </div>
 
@@ -165,7 +181,7 @@ export default function Header() {
                             <div className="flex items-center space-x-3">
                                 <Link
                                     href="/login"
-                                    className="text-sm text-gray-300 hover:text-white transition-colors"
+                                    className="text-sm text-zinc-300 transition-colors hover:text-white"
                                 >
                                     Đăng nhập
                                 </Link>

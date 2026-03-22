@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
-      <body className={inter.className}>
+    <html lang="vi" className="bg-[#0b0b0f] text-zinc-100">
+      <body className={`${inter.className} min-h-screen bg-[#0b0b0f] text-zinc-100 antialiased`}>
         {/* Không cần AuthProvider, dùng Header trực tiếp */}
         <Header />
         <main className="pt-16">
