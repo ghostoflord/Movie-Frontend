@@ -221,7 +221,7 @@ function MoviePosterCard({ movie }: { movie: PublicMovieListItem }) {
 
     return (
         <Link
-            href={`/phim/${movie.slug}`}
+            href={`/phim/${movie.id}`}
             className="group block overflow-hidden rounded-[4px] border border-white/5 bg-[#0d0d12] shadow-md transition hover:border-[#e50914]/35 hover:shadow-lg hover:shadow-black/40"
         >
             <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900">
