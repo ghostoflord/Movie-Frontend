@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Header from '@/components/client/header';
+import SiteFooter from '@/components/client/site-footer';
 
 /**
  * Không dùng header trang chủ: /admin, đăng nhập / đăng ký / quên mật khẩu.
@@ -23,6 +24,7 @@ export function ConditionalShell({ children }: { children: React.ReactNode }) {
         <>
             <Header />
             <main className="min-h-screen pt-16">{children}</main>
+            <SiteFooter />
         </>
     );
 }

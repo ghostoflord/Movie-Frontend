@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import HomeMovies from '@/components/client/home-movies';
-// Tesst
+
 export default function Home() {
     return (
         <div className="min-h-screen bg-[#0b0b0f] text-white">
