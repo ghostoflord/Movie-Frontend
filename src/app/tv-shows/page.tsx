@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { PhimCategoryClient } from '@/components/client/phim-category-client';
 
-export default function PhimBoPage() {
+export default function TvShowsPage() {
     return (
         <div className="min-h-screen bg-[#0b0b0f] text-white">
             <Suspense
@@ -11,7 +11,7 @@ export default function PhimBoPage() {
                     </div>
                 }
             >
-                <PhimCategoryClient slug="phim-bo" />
+                <PhimCategoryClient slug="tv-shows" />
             </Suspense>
         </div>
     );

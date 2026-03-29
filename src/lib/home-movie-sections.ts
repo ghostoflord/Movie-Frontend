@@ -21,9 +21,50 @@ export function isSeriesMovie(m: PublicMovieListItem): boolean {
 export function isPhimBo(m: PublicMovieListItem): boolean {
     const s = (m.status || '').toLowerCase();
     if (s === 'ongoing') return true;
-    if (s === 'trailer') return true;
+    if (s === 'trailer') return isSeriesMovie(m);
     if (s === 'completed') return isSeriesMovie(m);
     return false;
+}
+
+/** Phim lẻ: hoàn thành / trailer dạng một tập (không phải series nhiều tập). */
+export function isPhimLe(m: PublicMovieListItem): boolean {
+    const s = (m.status || '').toLowerCase();
+    if (s === 'completed' && !isSeriesMovie(m)) return true;
+    if (s === 'trailer' && !isSeriesMovie(m)) return true;
+    return false;
+}
+
+function categoryStrings(m: PublicMovieListItem): string[] {
+    return (m.categories || []).map((c) => String(c).trim().toLowerCase()).filter(Boolean);
+}
+
+/** Theo thẻ categories (cần API gán thể loại). */
+export function isPhimChieuRap(m: PublicMovieListItem): boolean {
+    return categoryStrings(m).some(
+        (c) =>
+            /chiếu\s*rạp|chieu\s*rap|rạp\s*chiếu/.test(c) ||
+            c.includes('theatrical') ||
+            c === 'cinema',
+    );
+}
+
+export function isHoatHinh(m: PublicMovieListItem): boolean {
+    return categoryStrings(m).some(
+        (c) =>
+            /hoạt\s*hình|hoat\s*hinh/.test(c) ||
+            c.includes('animation') ||
+            c.includes('anime') ||
+            c.includes('cartoon'),
+    );
+}
+
+export function isTvShow(m: PublicMovieListItem): boolean {
+    return categoryStrings(m).some(
+        (c) =>
+            /tv\s*show|tvshow|tv\s*series/.test(c) ||
+            c.includes('truyền hình') ||
+            c === 'tv',
+    );
 }
 
 export type HomeSections = {

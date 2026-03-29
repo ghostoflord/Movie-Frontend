@@ -4,11 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { parseMoviesListResponse, type PublicMovieListItem } from '@/lib/movies-public';
-import { isPhimBo } from '@/lib/home-movie-sections';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 const FETCH_PER_PAGE = 120;
 const PAGE_SIZE = 24;
+
+export type CategoryMoviesViewProps = {
+    /** Đường dẫn URL (vd: phim-bo, phim-le) */
+    pathSegment: string;
+    title: string;
+    breadcrumbLabel: string;
+    predicate: (m: PublicMovieListItem) => boolean;
+    emptyMessage?: string;
+};
 
 function episodeTopRight(m: PublicMovieListItem): string {
     const t = (m.episode_current || '').trim();
@@ -35,7 +43,7 @@ function sortMovies(list: PublicMovieListItem[], sort: string): PublicMovieListI
     return copy;
 }
 
-function PhimBoCard({ movie }: { movie: PublicMovieListItem }) {
+function CategoryMovieCard({ movie }: { movie: PublicMovieListItem }) {
     const poster = movie.poster_url || movie.thumb_url;
     const q = (movie.quality || 'HD').trim();
     const ep = episodeTopRight(movie);
@@ -133,10 +141,9 @@ function SidebarSection({ title, children }: { title: string; children: React.Re
     );
 }
 
-function buildPhimBoQuery(base: Record<string, string | undefined>): string {
+function buildCategoryQuery(base: Record<string, string | undefined>): string {
     const p = new URLSearchParams();
-    const page = base.page || '1';
-    p.set('page', page);
+    p.set('page', base.page || '1');
     if (base.genre) p.set('genre', base.genre);
     if (base.country) p.set('country', base.country);
     if (base.year) p.set('year', base.year);
@@ -144,7 +151,13 @@ function buildPhimBoQuery(base: Record<string, string | undefined>): string {
     return p.toString();
 }
 
-export default function PhimBoView() {
+export default function CategoryMoviesView({
+    pathSegment,
+    title,
+    breadcrumbLabel,
+    predicate,
+    emptyMessage = 'Không có phim phù hợp với bộ lọc (hoặc API chưa trả đủ thể loại / quốc gia).',
+}: CategoryMoviesViewProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -207,13 +220,13 @@ export default function PhimBoView() {
         fetchList();
     }, [fetchList]);
 
-    const phimBoBase = useMemo(() => rawList.filter(isPhimBo), [rawList]);
+    const categoryBase = useMemo(() => rawList.filter(predicate), [rawList, predicate]);
 
     const filterOptions = useMemo(() => {
         const genres = new Set<string>();
         const countries = new Set<string>();
         const years = new Set<string>();
-        for (const m of phimBoBase) {
+        for (const m of categoryBase) {
             for (const c of m.categories || []) {
                 if (c && String(c).trim()) genres.add(String(c).trim());
             }
@@ -225,10 +238,10 @@ export default function PhimBoView() {
             countries: [...countries].sort((a, b) => a.localeCompare(b, 'vi')),
             years: [...years].sort((a, b) => parseInt(b, 10) - parseInt(a, 10)),
         };
-    }, [phimBoBase]);
+    }, [categoryBase]);
 
     const filteredSorted = useMemo(() => {
-        let list = phimBoBase;
+        let list = categoryBase;
         if (genreUrl) {
             list = list.filter((m) => (m.categories || []).some((c) => String(c) === genreUrl));
         }
@@ -239,7 +252,7 @@ export default function PhimBoView() {
             list = list.filter((m) => String(m.year) === yearUrl);
         }
         return sortMovies(list, sortUrl);
-    }, [phimBoBase, genreUrl, countryUrl, yearUrl, sortUrl]);
+    }, [categoryBase, genreUrl, countryUrl, yearUrl, sortUrl]);
 
     const lastPage = Math.max(1, Math.ceil(filteredSorted.length / PAGE_SIZE));
     const safePage = Math.min(page, lastPage);
@@ -257,42 +270,45 @@ export default function PhimBoView() {
         if (end - start < max - 1) start = Math.max(1, end - max + 1);
         return Array.from({ length: end - start + 1 }, (_, i) => start + i);
     }, [lastPage, safePage]);
+
     const hotToday = useMemo(() => {
-        const onlyBo = rawList.filter(isPhimBo);
-        const withViews = [...onlyBo].sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0));
+        const only = rawList.filter(predicate);
+        const withViews = [...only].sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0));
         if (withViews.some((m) => (m.view_count ?? 0) > 0)) {
             return withViews.slice(0, 8);
         }
-        return [...onlyBo]
+        return [...only]
             .sort(
                 (a, b) =>
                     new Date(b.updated_at || b.created_at || 0).getTime() -
                     new Date(a.updated_at || a.created_at || 0).getTime(),
             )
             .slice(0, 8);
-    }, [rawList]);
+    }, [rawList, predicate]);
 
-    const moiCapNhatBo = useMemo(() => {
-        return [...phimBoBase].sort((a, b) => {
+    const moiCapNhat = useMemo(() => {
+        return [...categoryBase].sort((a, b) => {
             const ta = new Date(a.updated_at || a.created_at || 0).getTime();
             const tb = new Date(b.updated_at || b.created_at || 0).getTime();
             return tb - ta;
         });
-    }, [phimBoBase]);
+    }, [categoryBase]);
+
+    const basePath = `/${pathSegment}`;
 
     const applyFilters = () => {
-        const q = buildPhimBoQuery({
+        const q = buildCategoryQuery({
             page: '1',
             genre: genre || undefined,
             country: country || undefined,
             year: year || undefined,
             sort: sort || 'updated',
         });
-        router.push(`/phim-bo?${q}`);
+        router.push(`${basePath}?${q}`);
     };
 
     const hrefPage = (p: number) =>
-        `/phim-bo?${buildPhimBoQuery({
+        `${basePath}?${buildCategoryQuery({
             page: String(p),
             genre: genreUrl || undefined,
             country: countryUrl || undefined,
@@ -321,12 +337,12 @@ export default function PhimBoView() {
                     Trang chủ
                 </Link>
                 <span className="mx-2 text-zinc-600">»</span>
-                <span className="text-zinc-300">Phim bộ</span>
+                <span className="text-zinc-300">{breadcrumbLabel}</span>
             </nav>
 
             <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
                 <div className="min-w-0 flex-1 lg:max-w-[78%]">
-                    <h1 className="mb-6 text-xl font-bold uppercase tracking-wide text-white md:text-2xl">Phim bộ</h1>
+                    <h1 className="mb-6 text-xl font-bold uppercase tracking-wide text-white md:text-2xl">{title}</h1>
 
                     <div className="mb-6 flex flex-col gap-3 rounded-lg border border-white/10 bg-[#0d0d12] p-4 sm:flex-row sm:flex-wrap sm:items-end">
                         <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-xs text-zinc-400">
@@ -397,15 +413,13 @@ export default function PhimBoView() {
                     </div>
 
                     {filteredSorted.length === 0 ? (
-                        <p className="py-12 text-center text-zinc-500">
-                            Không có phim bộ phù hợp (hoặc API chưa trả đủ dữ liệu thể loại / quốc gia).
-                        </p>
+                        <p className="py-12 text-center text-zinc-500">{emptyMessage}</p>
                     ) : (
                         <>
                             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
                                 {pageItems.map((m) => (
                                     <li key={m.id}>
-                                        <PhimBoCard movie={m} />
+                                        <CategoryMovieCard movie={m} />
                                     </li>
                                 ))}
                             </ul>
@@ -445,10 +459,10 @@ export default function PhimBoView() {
                     </SidebarSection>
 
                     <SidebarSection title="Mới cập nhật">
-                        {moiCapNhatBo.length === 0 ? (
+                        {moiCapNhat.length === 0 ? (
                             <p className="px-3 py-4 text-center text-xs text-zinc-500">—</p>
                         ) : (
-                            moiCapNhatBo.slice(0, 12).map((m) => <SidebarHotRow key={m.id} movie={m} />)
+                            moiCapNhat.slice(0, 12).map((m) => <SidebarHotRow key={m.id} movie={m} />)
                         )}
                     </SidebarSection>
                 </aside>
