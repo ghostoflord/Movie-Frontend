@@ -24,6 +24,12 @@ export type PublicMovieDetail = {
     categories: string[] | null;
     actors: string[] | null;
     directors: string[] | null;
+    /** Quốc gia — có thể null tùy API */
+    country?: string | null;
+    /** Lượt xem — có thể không có trong API */
+    view_count?: number | null;
+    /** VD: "2 phút/tập" */
+    duration?: string | null;
     status: string;
     episode_current: string;
     episode_total: string;
