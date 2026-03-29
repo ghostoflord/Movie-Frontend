@@ -82,20 +82,8 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900">
-            {/* Background image */}
-            <div
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                style={{
-                    backgroundImage: "url('https://assets.nflxext.com/ffe/siteui/vlv3/f841d4c7-10e1-40af-bca1-07e3f8eb1418/1321453d-19c7-44aa-9943-42e12f6a70e7/VN-vi-20220214-popsignuptwoweeks-perspective_alpha_website_large.jpg')",
-                    filter: 'brightness(0.4) blur(2px)'
-                }}
-            >
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black"></div>
-            </div>
-
-            {/* Content Card */}
-            <div className="relative z-10 w-full max-w-md p-8 md:p-10 bg-black/60 rounded-2xl border border-white/10 backdrop-blur-xl shadow-2xl">
+        <div className="w-full max-w-[420px]">
+            <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-8 shadow-2xl backdrop-blur-xl md:p-10">
                 {/* Back button */}
                 <button
                     onClick={() => router.back()}

@@ -1,6 +1,7 @@
 // lib/api.ts - SỬA LẠI
 import axios, { AxiosError } from 'axios';
 import { LoginCredentials, User, RegisterData, Movie } from '@/types/auth';
+import type { AdminEpisode, EpisodesListResponse } from '@/types/episode';
 import { useAuthStore } from '@/hooks/useAuthStore';
 
 
@@ -125,6 +126,21 @@ export const movieAPI = {
     // Xóa phim
     deleteMovie: (id: string) =>
         apiService.delete(`/movies/${id}`),
+};
+
+export const episodeAPI = {
+    getEpisodes: (params?: { page?: number; per_page?: number }) =>
+        apiService.get<EpisodesListResponse>('/episodes', params),
+
+    getEpisode: (id: string) => apiService.get<AdminEpisode | { data: AdminEpisode }>(`/episodes/${id}`),
+
+    createEpisode: (data: Partial<AdminEpisode> & { movie_id: number }) =>
+        apiService.post<AdminEpisode | { data: AdminEpisode }>('/episodes', data),
+
+    updateEpisode: (id: string, data: Partial<AdminEpisode>) =>
+        apiService.put<AdminEpisode | { data: AdminEpisode }>(`/episodes/${id}`, data),
+
+    deleteEpisode: (id: string) => apiService.delete(`/episodes/${id}`),
 };
 
 export default apiService;
