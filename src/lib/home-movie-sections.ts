@@ -14,6 +14,18 @@ export function isSeriesMovie(m: PublicMovieListItem): boolean {
     return false;
 }
 
+/**
+ * Phim bộ (series): đang chiếu, trailer, hoặc đã hoàn thành dạng nhiều tập.
+ * Loại phim lẻ (completed, 1 tập / Full đơn).
+ */
+export function isPhimBo(m: PublicMovieListItem): boolean {
+    const s = (m.status || '').toLowerCase();
+    if (s === 'ongoing') return true;
+    if (s === 'trailer') return true;
+    if (s === 'completed') return isSeriesMovie(m);
+    return false;
+}
+
 export type HomeSections = {
     /** Đang chiếu — status ongoing */
     phimBo: PublicMovieListItem[];

@@ -4,44 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type { MoviesListMeta, PublicMovieListItem } from '@/lib/movies-public';
+import { parseMoviesListResponse } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 const HOME_PER_PAGE = 30;
-
-function parseMoviesPayload(data: unknown): { list: PublicMovieListItem[]; meta?: MoviesListMeta } {
-    if (Array.isArray(data)) {
-        return { list: data as PublicMovieListItem[] };
-    }
-    if (data && typeof data === 'object') {
-        const o = data as Record<string, unknown>;
-
-        if (o.data != null && typeof o.data === 'object' && !Array.isArray(o.data)) {
-            const inner = o.data as Record<string, unknown>;
-            if (Array.isArray(inner.data)) {
-                return {
-                    list: inner.data as PublicMovieListItem[],
-                    meta: (inner.meta ?? o.meta) as MoviesListMeta | undefined,
-                };
-            }
-        }
-
-        if (Array.isArray(o.data)) {
-            return {
-                list: o.data as PublicMovieListItem[],
-                meta: o.meta as MoviesListMeta | undefined,
-            };
-        }
-        if (Array.isArray(o.movies)) {
-            return { list: o.movies as PublicMovieListItem[], meta: o.meta as MoviesListMeta | undefined };
-        }
-        if ('id' in o && o.id != null) {
-            return { list: [data as PublicMovieListItem] };
-        }
-    }
-    return { list: [] };
-}
 
 function topLeftBadgeText(movie: PublicMovieListItem): string {
     const t = (movie.episode_current || '').trim();
@@ -102,7 +70,7 @@ export default function HomeMovies() {
                 return;
             }
 
-            const { list, meta: m } = parseMoviesPayload(data);
+            const { list, meta: m } = parseMoviesListResponse(data);
             if (process.env.NODE_ENV === 'development') {
                 console.log('[HomeMovies]', { page, items: list.length, meta: m });
             }
