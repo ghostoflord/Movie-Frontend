@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { parseMoviesListResponse, type PublicMovieListItem } from '@/lib/movies-public';
+import { toUserErrorMessage } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 const FETCH_PER_PAGE = 120;
@@ -201,7 +202,7 @@ export default function CategoryMoviesView({
             const res = await fetch(`${API_URL}/movies?${params.toString()}`, { headers });
             const data = await res.json();
             if (!res.ok) {
-                setError(typeof data?.message === 'string' ? data.message : `Lỗi ${res.status}`);
+                setError(toUserErrorMessage(data, { fallback: 'Hệ thống đang bận hoặc không kết nối được. Vui lòng thử lại sau.' }));
                 setRawList([]);
                 return;
             }
@@ -209,7 +210,7 @@ export default function CategoryMoviesView({
             setRawList(list);
         } catch (e) {
             console.error(e);
-            setError('Không tải được danh sách phim.');
+            setError('Không tải được danh sách. Vui lòng thử lại sau.');
             setRawList([]);
         } finally {
             setLoading(false);

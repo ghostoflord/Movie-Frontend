@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import type { MoviesListMeta, PublicMovieListItem } from '@/lib/movies-public';
 import { parseMoviesListResponse } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
+import { toUserErrorMessage } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -64,7 +65,7 @@ export default function HomeMovies() {
             const data = await res.json();
 
             if (!res.ok) {
-                setError(typeof data?.message === 'string' ? data.message : `Lỗi ${res.status}`);
+                setError(toUserErrorMessage(data, { fallback: 'Hệ thống đang bận hoặc không kết nối được. Vui lòng thử lại sau.' }));
                 setMovies([]);
                 setMeta(undefined);
                 return;
@@ -78,7 +79,7 @@ export default function HomeMovies() {
             setMeta(m);
         } catch (e) {
             console.error('[HomeMovies]', e);
-            setError('Không kết nối được API. Kiểm tra NEXT_PUBLIC_API_URL và backend.');
+            setError('Không kết nối được hệ thống. Vui lòng thử lại sau.');
             setMovies([]);
             setMeta(undefined);
         } finally {
