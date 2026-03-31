@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { PublicMovieDetail, PublicMovieEpisode } from '@/types/public-movie-detail';
 import type { PublicMovieListItem } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
+import { toUserErrorMessage } from '@/lib/api-error';
 
 function PlayIcon({ className }: { className?: string }) {
     return (
@@ -220,7 +221,7 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
             const res = await fetch(`${API_URL}/movies/${movieId}`, { headers });
             const json = await res.json();
             if (!res.ok) {
-                setError(typeof json?.message === 'string' ? json.message : `Lỗi ${res.status}`);
+                setError(toUserErrorMessage(json, { fallback: 'Hệ thống đang bận hoặc không kết nối được. Vui lòng thử lại sau.' }));
                 setMovie(null);
                 return;
             }
@@ -232,7 +233,7 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
             }
         } catch (e) {
             console.error(e);
-            setError('Không tải được phim.');
+            setError('Không tải được phim. Vui lòng thử lại sau.');
             setMovie(null);
         } finally {
             setLoading(false);

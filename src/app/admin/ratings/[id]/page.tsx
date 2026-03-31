@@ -1,0 +1,122 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ratingAPI } from '@/lib/api';
+import type { Rating } from '@/types/admin-entities';
+import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminPageHeader } from '@/components/admin/admin-shell';
+import { AdminErrorBox } from '@/components/admin/admin-error';
+
+export default function AdminRatingEditPage({ params }: { params: Promise<{ id: string }> }) {
+    const router = useRouter();
+    const [id, setId] = useState<string>('');
+    const [item, setItem] = useState<Rating | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const [movieId, setMovieId] = useState('');
+    const [rating, setRating] = useState('10');
+
+    useEffect(() => {
+        (async () => {
+            const p = await params;
+            setId(p.id);
+        })();
+    }, [params]);
+
+    const fetchOne = useCallback(async () => {
+        if (!id) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const r = await ratingAPI.get(id);
+            if (!r) {
+                setError('Không tìm thấy rating.');
+                setItem(null);
+            } else {
+                setItem(r);
+                setMovieId(String(r.movie_id));
+                setRating(String(r.rating));
+            }
+        } catch (e) {
+            setError(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Không tải được rating.' }));
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        fetchOne();
+    }, [fetchOne]);
+
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!id) return;
+        setSaving(true);
+        try {
+            await ratingAPI.update(id, { movie_id: Number(movieId), rating: Number(rating) });
+            router.push('/admin/ratings');
+        } catch (e) {
+            alert(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Cập nhật thất bại.' }));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex min-h-[40vh] items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-red-500" />
+            </div>
+        );
+    }
+    if (error) return <AdminErrorBox message={error} />;
+    if (!item) return <p className="text-zinc-500">Không có dữ liệu.</p>;
+
+    return (
+        <div className="space-y-6">
+            <AdminPageHeader title={`Sửa rating #${item.id}`} />
+            <Link href="/admin/ratings" className="text-sm text-zinc-400 hover:text-white">
+                ← Danh sách ratings
+            </Link>
+
+            <form onSubmit={onSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
+                <div>
+                    <label className="mb-1 block text-sm text-zinc-400">Movie ID *</label>
+                    <input
+                        value={movieId}
+                        onChange={(e) => setMovieId(e.target.value)}
+                        required
+                        inputMode="numeric"
+                        className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
+                    />
+                </div>
+                <div>
+                    <label className="mb-1 block text-sm text-zinc-400">Rating (1..10) *</label>
+                    <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={rating}
+                        onChange={(e) => setRating(e.target.value)}
+                        required
+                        className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
+                    />
+                </div>
+
+                <div className="flex justify-end">
+                    <button
+                        disabled={saving}
+                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                    >
+                        {saving ? 'Đang lưu…' : 'Lưu'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+

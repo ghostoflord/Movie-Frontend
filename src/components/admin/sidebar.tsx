@@ -21,8 +21,11 @@ const navigation: {
     { name: 'Quản lý tập phim', href: '/admin/episodes', icon: VideoCameraIcon },
     { name: 'Quản lý user', href: '/admin/users', icon: UserIcon },
     { name: 'Thể loại', href: '/admin/categories', icon: FolderIcon },
-    { name: 'Đánh giá', href: '/admin/reviews', icon: StarIcon },
-    { name: 'Cài đặt', href: '/admin/settings', icon: Cog6ToothIcon },
+    { name: 'Diễn viên', href: '/admin/actors', icon: FolderIcon },
+    { name: 'Servers', href: '/admin/servers', icon: Cog6ToothIcon },
+    { name: 'Ratings', href: '/admin/ratings', icon: StarIcon },
+    { name: 'Watch history', href: '/admin/watch-history', icon: FolderIcon },
+    { name: 'Gợi ý phim', href: '/admin/recommendations', icon: StarIcon },
 ];
 
 interface SidebarProps {
