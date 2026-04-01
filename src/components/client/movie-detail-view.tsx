@@ -6,6 +6,7 @@ import type { PublicMovieDetail, PublicMovieEpisode } from '@/types/public-movie
 import type { PublicMovieListItem } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { ratingAPI } from '@/lib/api';
 
 function PlayIcon({ className }: { className?: string }) {
     return (
@@ -209,6 +210,11 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     const [error, setError] = useState<string | null>(null);
     const [selectedEpisode, setSelectedEpisode] = useState<PublicMovieEpisode | null>(null);
     const [listMovies, setListMovies] = useState<PublicMovieListItem[]>([]);
+    const [myRatingId, setMyRatingId] = useState<number | null>(null);
+    const [myRating, setMyRating] = useState<number>(0); // 0..10
+    const [ratingHover, setRatingHover] = useState<number | null>(null);
+    const [ratingSaving, setRatingSaving] = useState(false);
+    const [ratingNotice, setRatingNotice] = useState<string | null>(null);
 
     const fetchMovie = useCallback(async () => {
         setLoading(true);
@@ -244,6 +250,59 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
         fetchMovie();
     }, [fetchMovie]);
 
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                if (!token) {
+                    if (!cancelled) {
+                        setMyRatingId(null);
+                        setMyRating(0);
+                    }
+                    return;
+                }
+                const list = await ratingAPI.list(); // chỉ rating của user đang login
+                const mid = Number(movieId);
+                const mine = list.find((r) => r && typeof r === 'object' && (r as any).movie_id === mid);
+                if (!cancelled) {
+                    setMyRatingId(mine?.id ?? null);
+                    setMyRating(Number(mine?.rating ?? 0) || 0);
+                }
+            } catch {
+                if (!cancelled) {
+                    setMyRatingId(null);
+                    setMyRating(0);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [movieId]);
+
+    const canRate = typeof window !== 'undefined' && !!localStorage.getItem('token');
+
+    const saveRating = async (value: number) => {
+        if (!canRate) return;
+        const v = Math.max(1, Math.min(10, value));
+        setRatingSaving(true);
+        setRatingNotice(null);
+        try {
+            const r = await ratingAPI.create({ movie_id: Number(movieId), rating: v });
+            setMyRatingId(r?.id ?? myRatingId);
+            setMyRating(v);
+            setRatingNotice('Đã lưu đánh giá.');
+        } catch (e) {
+            setRatingNotice(
+                toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, {
+                    fallback: 'Không lưu được đánh giá.',
+                }),
+            );
+        } finally {
+            setRatingSaving(false);
+        }
+    };
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -399,13 +458,51 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                     {yearStr !== '—' ? ` (${yearStr})` : ''}
                                 </p>
 
-                                <div className="mt-3 flex items-center gap-0.5 text-zinc-600">
-                                    {[0, 1, 2, 3, 4].map((i) => (
-                                        <span key={i} className="text-lg text-zinc-700">
-                                            ★
+                                <div className="mt-3 flex flex-wrap items-center gap-2 text-zinc-600">
+                                    <div
+                                        className="flex items-center gap-0.5"
+                                        onMouseLeave={() => setRatingHover(null)}
+                                    >
+                                        {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => {
+                                            const value10 = star * 2; // 2..10
+                                            const displayValue = ratingHover ?? myRating;
+                                            const filled = displayValue >= value10;
+                                            return (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    disabled={!canRate || ratingSaving}
+                                                    onMouseEnter={() => setRatingHover(value10)}
+                                                    onFocus={() => setRatingHover(value10)}
+                                                    onClick={() => void saveRating(value10)}
+                                                    className={[
+                                                        'rounded p-0.5 transition',
+                                                        canRate ? 'hover:text-amber-200' : 'cursor-default',
+                                                        filled ? 'text-amber-300' : 'text-zinc-700',
+                                                        ratingSaving ? 'opacity-70' : '',
+                                                    ].join(' ')}
+                                                    aria-label={`Đánh giá ${value10}/10`}
+                                                >
+                                                    <span className="text-lg leading-none">★</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <span className="ml-1 text-xs text-zinc-500">
+                                        {(myRating || 0)} / 10
+                                    </span>
+                                    {!canRate ? (
+                                        <Link href="/login" className="ml-2 text-xs font-semibold text-[#e50914] hover:underline">
+                                            Đăng nhập để đánh giá
+                                        </Link>
+                                    ) : (
+                                        <span className="ml-2 text-xs text-zinc-600">
+                                            {myRatingId ? 'Đã đánh giá' : 'Chưa đánh giá'}
                                         </span>
-                                    ))}
-                                    <span className="ml-2 text-xs text-zinc-500">0 / 10</span>
+                                    )}
+                                    {ratingNotice ? (
+                                        <span className="w-full text-xs text-zinc-400">{ratingNotice}</span>
+                                    ) : null}
                                 </div>
 
                                 <div className="mt-5 space-y-0 border-t border-white/10 pt-3">
