@@ -222,4 +222,18 @@ export const adminUserAPI = {
     delete: (id: string | number) => apiService.delete(`/users/${id}`),
 };
 
+export type CrawlStatus = {
+    status: 'idle' | 'processing' | 'done' | 'failed' | string;
+    started_at?: string;
+    pages?: number;
+    category?: string;
+    message?: string;
+};
+
+export const crawlAPI = {
+    status: () => apiService.get<CrawlStatus>('/admin/crawl-status'),
+    crawlCategory: (data: { category: string; pages?: number }) => apiService.post('/admin/crawl/category', data),
+    crawlMovies: (data: { pages?: number }) => apiService.post('/admin/crawl-movies', data),
+};
+
 export default apiService;
