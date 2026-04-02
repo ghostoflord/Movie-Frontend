@@ -48,7 +48,7 @@ export default function AdminRecommendationsPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Gợi ý phim"
-                subtitle="GET /api/recommendations — dựa trên lịch sử xem + favorites (cần token)"
+                subtitle="Gợi ý dựa trên lịch sử xem và mục yêu thích."
             />
 
             {items.length === 0 ? (

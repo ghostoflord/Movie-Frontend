@@ -36,7 +36,7 @@ export default function AdminWatchHistoryPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Watch history"
-                subtitle="POST /api/watch-history — lưu tiến độ xem theo episode_id (cần token)"
+                subtitle="Lưu tiến độ xem theo episode."
             />
 
             <form onSubmit={onSubmit} className="max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">

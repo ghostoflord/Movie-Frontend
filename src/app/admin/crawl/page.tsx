@@ -128,7 +128,7 @@ export default function AdminCrawlPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Cào phim (Crawler)"
-                subtitle="POST /api/admin/crawl/category · GET /api/admin/crawl-status (cần token)"
+                subtitle="Chạy job cào phim và theo dõi trạng thái."
             />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

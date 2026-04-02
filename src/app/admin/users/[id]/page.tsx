@@ -102,7 +102,7 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
 
     return (
         <div className="space-y-6">
-            <AdminPageHeader title={`Sửa user #${item.id}`} subtitle="PUT /api/users/{id} (cần token)" />
+            <AdminPageHeader title={`Sửa user #${item.id}`} />
             <Link href="/admin/users" className="text-sm text-zinc-400 hover:text-white">
                 ← Danh sách user
             </Link>

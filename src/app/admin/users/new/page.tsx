@@ -41,7 +41,7 @@ export default function AdminUserNewPage() {
 
     return (
         <div className="space-y-6">
-            <AdminPageHeader title="Thêm user" subtitle="POST /api/users (cần token)" />
+            <AdminPageHeader title="Thêm user" />
             <Link href="/admin/users" className="text-sm text-zinc-400 hover:text-white">
                 ← Danh sách user
             </Link>
