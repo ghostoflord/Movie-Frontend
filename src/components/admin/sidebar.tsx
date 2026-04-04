@@ -26,6 +26,7 @@ const navigation: {
     { name: 'Ratings', href: '/admin/ratings', icon: StarIcon },
     { name: 'Watch history', href: '/admin/watch-history', icon: FolderIcon },
     { name: 'Gợi ý phim', href: '/admin/recommendations', icon: StarIcon },
+    { name: 'Cào phim', href: '/admin/crawl', icon: Cog6ToothIcon },
 ];
 
 interface SidebarProps {
