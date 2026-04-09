@@ -102,6 +102,8 @@ export const apiService = new ApiService();
 
 export const authAPI = {
     login: (credentials: LoginCredentials) => apiService.login(credentials),
+    googleLogin: (idToken: string) =>
+        apiService.post<{ user: User; token: string }>('/login/google', { id_token: idToken }),
     logout: () => apiService.logout(),
     register: (userData: RegisterData) => apiService.register(userData),
     getUser: () => apiService.getUser(),

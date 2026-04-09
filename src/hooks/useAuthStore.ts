@@ -14,6 +14,7 @@ interface AuthState {
     
     // Actions
     login: (credentials: { email: string; password: string }) => Promise<any>;
+    googleLogin: (idToken: string) => Promise<any>;
     register: (userData: RegisterData) => Promise<any>;
     logout: () => Promise<void>;
     checkUser: () => Promise<void>;
@@ -89,6 +90,27 @@ export const useAuthStore = create<AuthState>()(
                         isLoggingIn: false 
                     });
                     
+                    return response;
+                } catch (error) {
+                    set({ isLoggingIn: false });
+                    throw error;
+                }
+            },
+
+            // Google login (id_token)
+            googleLogin: async (idToken) => {
+                set({ isLoggingIn: true });
+                try {
+                    const response = await authAPI.googleLogin(idToken);
+
+                    localStorage.setItem('token', response.token);
+
+                    set({
+                        user: response.user,
+                        token: response.token,
+                        isLoggingIn: false,
+                    });
+
                     return response;
                 } catch (error) {
                     set({ isLoggingIn: false });

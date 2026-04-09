@@ -8,6 +8,7 @@ export const useAuth = () => {
         isLoggingIn, 
         isRegistering,
         login, 
+        googleLogin,
         register, 
         logout,
     } = useAuthStore();
@@ -21,6 +22,7 @@ export const useAuth = () => {
         
         // Actions
         login,
+        googleLogin,
         register,
         logout,
         
