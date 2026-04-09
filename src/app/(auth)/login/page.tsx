@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,13 +10,15 @@ import FilmIcon from '@/components/icons/FilmIcon';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, isLoggingIn } = useAuth();
+    const { login, googleLogin, isLoggingIn } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const googleBtnRef = useRef<HTMLDivElement | null>(null);
+    const googleClientId = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '', []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,6 +40,57 @@ export default function LoginPage() {
         }
     };
 
+    useEffect(() => {
+        if (!googleClientId) return;
+        if (!googleBtnRef.current) return;
+
+        const existing = document.querySelector('script[data-google-identity="1"]');
+        const onReady = () => {
+            if (!window.google?.accounts?.id) return;
+
+            window.google.accounts.id.initialize({
+                client_id: googleClientId,
+                callback: async (resp) => {
+                    setError('');
+                    try {
+                        const response = await googleLogin(resp.credential);
+                        const userRole = response.user?.role;
+                        if (userRole === 'ADMIN') router.push('/admin');
+                        else router.push('/');
+                    } catch (err: unknown) {
+                        const anyErr = err as { response?: { data?: { message?: string } } };
+                        setError(anyErr.response?.data?.message || 'Đăng nhập Google thất bại!');
+                    }
+                },
+                cancel_on_tap_outside: true,
+                context: 'signin',
+            });
+
+            // clear old button (avoid duplicates during HMR)
+            googleBtnRef.current!.innerHTML = '';
+            window.google.accounts.id.renderButton(googleBtnRef.current!, {
+                theme: 'outline',
+                size: 'large',
+                text: 'signin_with',
+                shape: 'pill',
+                width: '360',
+            });
+        };
+
+        if (existing) {
+            onReady();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.dataset.googleIdentity = '1';
+        script.onload = onReady;
+        document.head.appendChild(script);
+    }, [googleClientId, googleLogin, router]);
+
     return (
         <div className="w-full max-w-[420px]">
             <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-8 shadow-2xl backdrop-blur-xl md:p-10">
@@ -55,6 +108,24 @@ export default function LoginPage() {
                         <span className="mt-0.5 shrink-0 text-red-400">!</span>
                         <span>{error}</span>
                     </div>
+                )}
+
+                {googleClientId ? (
+                    <>
+                        <div className="flex justify-center">
+                            <div ref={googleBtnRef} />
+                        </div>
+                        <div className="my-6 flex items-center gap-3">
+                            <div className="h-px flex-1 bg-white/10" />
+                            <span className="text-xs text-zinc-500">hoặc</span>
+                            <div className="h-px flex-1 bg-white/10" />
+                        </div>
+                    </>
+                ) : (
+                    <p className="mb-6 text-center text-xs text-zinc-500">
+                        (Chưa cấu hình Google) Thêm <code className="rounded bg-white/5 px-1 py-0.5">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> vào{' '}
+                        <code className="rounded bg-white/5 px-1 py-0.5">.env.local</code> để bật đăng nhập Google.
+                    </p>
                 )}
 
                 <form className="space-y-5" onSubmit={handleSubmit}>
