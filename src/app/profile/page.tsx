@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Calendar, Heart, Mail, Shield, Sparkles, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { recommendationsAPI } from '@/lib/api';
+import { resolveUserAvatarUrl } from '@/lib/avatar';
 import { toUserErrorMessage } from '@/lib/api-error';
 import type { RecommendationMovie } from '@/types/admin-entities';
 
@@ -98,6 +99,8 @@ export default function ProfilePage() {
         );
     }
 
+    const profileAvatarUrl = resolveUserAvatarUrl(user.avatar);
+
     return (
         <div className="mx-auto max-w-[1200px] px-3 pb-20 pt-8 sm:px-4">
             <header className="mb-10 border-b border-white/10 pb-4">
@@ -117,10 +120,10 @@ export default function ProfilePage() {
                         <div className="flex flex-col items-center text-center">
                             <div className="relative">
                                 <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-500 to-red-800 text-3xl font-bold text-white shadow-lg shadow-red-900/40">
-                                    {user.avatar ? (
+                                    {profileAvatarUrl ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
-                                            src={user.avatar}
+                                            src={profileAvatarUrl}
                                             alt=""
                                             className="absolute inset-0 h-full w-full object-cover"
                                             referrerPolicy="no-referrer"

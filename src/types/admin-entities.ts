@@ -61,6 +61,7 @@ export type AdminUserItem = {
     gender: string | null;
     provider: string;
     active: boolean;
+    avatar?: string | null;
     created_at: string;
     updated_at: string;
 };

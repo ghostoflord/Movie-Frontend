@@ -21,6 +21,9 @@ class ApiService {
         //REQUEST INTERCEPTOR - Lấy token từ store
         this.api.interceptors.request.use(
             (config) => {
+                if (config.data instanceof FormData) {
+                    config.headers.delete('Content-Type');
+                }
                 // Lấy token từ store thay vì localStorage
                 const token = useAuthStore.getState().token;
                 if (token) {
@@ -87,7 +90,17 @@ class ApiService {
         return response.data;
     }
 
+    async postForm<T = any>(url: string, data: FormData): Promise<T> {
+        const response = await this.api.post<T>(url, data);
+        return response.data;
+    }
+
     async put<T = any>(url: string, data?: any): Promise<T> {
+        const response = await this.api.put<T>(url, data);
+        return response.data;
+    }
+
+    async putForm<T = any>(url: string, data: FormData): Promise<T> {
         const response = await this.api.put<T>(url, data);
         return response.data;
     }
@@ -211,16 +224,64 @@ export const recommendationsAPI = {
     get: () => apiService.get<unknown>('/recommendations').then(unwrapList<RecommendationMovie>),
 };
 
+function appendAdminUserFormFields(
+    fd: FormData,
+    fields: {
+        name: string;
+        email: string;
+        password?: string;
+        role?: string;
+        active?: boolean;
+        gender?: string | null;
+    },
+) {
+    fd.append('name', fields.name);
+    fd.append('email', fields.email);
+    if (fields.password != null && fields.password !== '') {
+        fd.append('password', fields.password);
+    }
+    fd.append('role', fields.role ?? 'USER');
+    fd.append('active', fields.active !== false ? '1' : '0');
+    const g = fields.gender;
+    if (g) fd.append('gender', g);
+}
+
 export const adminUserAPI = {
     list: (params?: { page?: number; per_page?: number }) =>
         apiService.get<unknown>('/users', params),
     get: (id: string | number) => apiService.get<unknown>(`/users/${id}`).then((r) => unwrapOne<AdminUserItem>(r)),
-    create: (data: { name: string; email: string; password: string; role?: string; active?: boolean; gender?: string | null }) =>
-        apiService.post<unknown>('/users', data).then((r) => unwrapOne<AdminUserItem>(r)),
+    create: (
+        data: { name: string; email: string; password: string; role?: string; active?: boolean; gender?: string | null },
+        avatarFile?: File | null,
+    ) => {
+        if (avatarFile) {
+            const fd = new FormData();
+            appendAdminUserFormFields(fd, data);
+            fd.append('avatar', avatarFile);
+            return apiService.postForm<unknown>('/users', fd).then((r) => unwrapOne<AdminUserItem>(r));
+        }
+        return apiService.post<unknown>('/users', data).then((r) => unwrapOne<AdminUserItem>(r));
+    },
     update: (
         id: string | number,
         data: Partial<{ name: string; email: string; password?: string; role?: string; active?: boolean; gender?: string | null }>,
-    ) => apiService.put<unknown>(`/users/${id}`, data).then((r) => unwrapOne<AdminUserItem>(r)),
+        avatarFile?: File | null,
+    ) => {
+        if (avatarFile) {
+            const fd = new FormData();
+            appendAdminUserFormFields(fd, {
+                name: data.name ?? '',
+                email: data.email ?? '',
+                password: data.password,
+                role: data.role,
+                active: data.active,
+                gender: data.gender ?? null,
+            });
+            fd.append('avatar', avatarFile);
+            return apiService.putForm<unknown>(`/users/${id}`, fd).then((r) => unwrapOne<AdminUserItem>(r));
+        }
+        return apiService.put<unknown>(`/users/${id}`, data).then((r) => unwrapOne<AdminUserItem>(r));
+    },
     delete: (id: string | number) => apiService.delete(`/users/${id}`),
 };
 

@@ -4,6 +4,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveUserAvatarUrl } from '@/lib/avatar';
 import Bars3Icon from '../icons/Bars3Icon';
 import BellIcon from '../icons/BellIcon';
 import FilmIcon from '../icons/FilmIcon';
@@ -15,7 +16,8 @@ interface HeaderProps {
 
 export default function AdminHeader({ sidebarOpen, setSidebarOpen }: HeaderProps) {
     const { user, logout } = useAuth();
-    const initial = user?.email?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? 'A';
+    const avatarUrl = user ? resolveUserAvatarUrl(user.avatar) : null;
+    const initial = user?.name?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? 'A';
 
     return (
         <header className="fixed left-0 right-0 top-0 z-50 border-b border-zinc-800/90 bg-[#0c0e14]/95 shadow-sm shadow-black/20 backdrop-blur-md">
@@ -78,8 +80,18 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: HeaderProps
 
                     <Menu as="div" className="relative">
                         <Menu.Button className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/80 p-0.5 pr-2 transition hover:border-zinc-600">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-rose-700 text-xs font-bold text-white">
-                                {initial}
+                            <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-600 to-rose-700 text-xs font-bold text-white">
+                                {avatarUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={avatarUrl}
+                                        alt=""
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                        referrerPolicy="no-referrer"
+                                    />
+                                ) : (
+                                    initial
+                                )}
                             </span>
                         </Menu.Button>
 
@@ -94,8 +106,25 @@ export default function AdminHeader({ sidebarOpen, setSidebarOpen }: HeaderProps
                         >
                             <Menu.Items className="absolute right-0 mt-2 w-52 origin-top-right rounded-xl border border-zinc-700 bg-zinc-900 py-1 shadow-xl ring-1 ring-black/20 focus:outline-none">
                                 <div className="border-b border-zinc-800 px-3 py-2">
-                                    <p className="truncate text-xs text-zinc-500">Đăng nhập</p>
-                                    <p className="truncate text-sm font-medium text-white">{user?.email ?? user?.name ?? 'Admin'}</p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-600 to-rose-700 text-xs font-bold text-white">
+                                            {avatarUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={avatarUrl}
+                                                    alt=""
+                                                    className="absolute inset-0 h-full w-full object-cover"
+                                                    referrerPolicy="no-referrer"
+                                                />
+                                            ) : (
+                                                initial
+                                            )}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs text-zinc-500">Tài khoản</p>
+                                            <p className="truncate text-sm font-medium text-white">{user?.email ?? user?.name ?? 'Admin'}</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <Menu.Item>
                                     {({ active }) => (

@@ -8,6 +8,7 @@ import type { AdminUserItem } from '@/types/admin-entities';
 import { toUserErrorMessage } from '@/lib/api-error';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
+import { UserAvatarInput } from '@/components/admin/user-avatar-input';
 
 export default function AdminUserEditPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -23,6 +24,7 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
     const [active, setActive] = useState(true);
     const [gender, setGender] = useState<'' | 'MALE' | 'FEMALE' | 'OTHER'>('');
     const [password, setPassword] = useState('');
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -64,14 +66,18 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
         if (!id) return;
         setSaving(true);
         try {
-            await adminUserAPI.update(id, {
-                name,
-                email,
-                role,
-                active,
-                gender: gender || null,
-                ...(password ? { password } : {}),
-            });
+            await adminUserAPI.update(
+                id,
+                {
+                    name,
+                    email,
+                    role,
+                    active,
+                    gender: gender || null,
+                    ...(password ? { password } : {}),
+                },
+                avatarFile,
+            );
             router.push('/admin/users');
         } catch (e) {
             alert(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Cập nhật thất bại.' }));
@@ -103,12 +109,9 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
     return (
         <div className="space-y-6">
             <AdminPageHeader title={`Sửa user #${item.id}`} />
-            <Link href="/admin/users" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách user
-            </Link>
 
-            <form onSubmit={onSubmit} className="max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
-                <Field label="Tên *">
+            <form onSubmit={onSubmit} className="w-full max-w-none rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
+                <Field label="Tên" required>
                     <input
                         required
                         value={name}
@@ -116,7 +119,7 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
                         className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
                     />
                 </Field>
-                <Field label="Email *">
+                <Field label="Email" required>
                     <input
                         type="email"
                         required
@@ -126,24 +129,24 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
                     />
                 </Field>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Role">
-                        <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
-                        >
-                            <option value="USER">USER</option>
-                            <option value="ADMIN">ADMIN</option>
-                        </select>
-                    </Field>
-                    <Field label="Active">
-                        <label className="flex items-center gap-2 text-sm text-zinc-300">
-                            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-                            {active ? 'Đang hoạt động' : 'Tạm khóa'}
-                        </label>
-                    </Field>
-                </div>
+                <UserAvatarInput existingAvatarPath={item.avatar} onFileChange={setAvatarFile} />
+
+                <Field label="Role">
+                    <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
+                    >
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </Field>
+                <Field label="Active">
+                    <label className="flex min-h-[42px] items-center gap-2 text-sm text-zinc-300">
+                        <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+                        {active ? 'Đang hoạt động' : 'Tạm khóa'}
+                    </label>
+                </Field>
 
                 <Field label="Gender">
                     <select
@@ -167,30 +170,49 @@ export default function AdminUserEditPage({ params }: { params: Promise<{ id: st
                     />
                 </Field>
 
-                <div className="flex flex-wrap justify-end gap-3">
-                    <button
-                        type="button"
-                        onClick={() => void onDelete()}
-                        className="rounded-xl bg-red-600/20 px-5 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-600/30"
+                <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <Link
+                        href="/admin/users"
+                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-600/80 bg-zinc-800/70 px-4 py-2.5 text-sm font-medium text-zinc-200 shadow-sm transition hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
                     >
-                        Xóa user
-                    </button>
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang lưu…' : 'Lưu'}
-                    </button>
+                        <span className="text-base leading-none text-zinc-400" aria-hidden>
+                            ←
+                        </span>
+                        Danh sách user
+                    </Link>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => void onDelete()}
+                            className="rounded-xl bg-red-600/20 px-5 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-600/30"
+                        >
+                            Xóa user
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang lưu…' : 'Lưu'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
     return (
         <div className="space-y-1">
-            <label className="block text-sm text-zinc-400">{label}</label>
+            <label className="block text-sm text-zinc-400">
+                {label}
+                {required ? (
+                    <span className="ml-0.5 font-semibold text-[#e50914]" aria-hidden>
+                        *
+                    </span>
+                ) : null}
+            </label>
             {children}
         </div>
     );
