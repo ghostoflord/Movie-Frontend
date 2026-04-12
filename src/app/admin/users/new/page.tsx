@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { adminUserAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { UserAvatarInput } from '@/components/admin/user-avatar-input';
 
@@ -113,15 +113,7 @@ export default function AdminUserNewPage() {
                 </Field>
 
                 <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                    <Link
-                        href="/admin/users"
-                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-600/80 bg-zinc-800/70 px-4 py-2.5 text-sm font-medium text-zinc-200 shadow-sm transition hover:border-zinc-500 hover:bg-zinc-800 hover:text-white"
-                    >
-                        <span className="text-base leading-none text-zinc-400" aria-hidden>
-                            ←
-                        </span>
-                        Danh sách user
-                    </Link>
+                    <AdminBackLink href="/admin/users">Danh sách user</AdminBackLink>
                     <div className="flex flex-wrap justify-end gap-3">
                         <button
                             type="submit"

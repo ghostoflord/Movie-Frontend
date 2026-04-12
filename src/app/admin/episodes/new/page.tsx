@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { episodeAPI } from '@/lib/api';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { unwrapData } from '@/lib/unwrap-api';
 import type { AdminEpisode } from '@/types/episode';
 
@@ -47,11 +47,8 @@ export default function AdminEpisodeCreatePage() {
     return (
         <div className="mx-auto max-w-2xl space-y-6">
             <div>
-                <Link href="/admin/episodes" className="text-sm text-gray-400 hover:text-white">
-                    ← Danh sách tập phim
-                </Link>
-                <h1 className="mt-2 text-2xl font-bold text-white">Thêm tập phim</h1>
-                <p className="text-sm text-gray-500">Gán vào phim bằng ID phim (movie_id)</p>
+                <h1 className="text-2xl font-bold text-white">Thêm tập phim</h1>
+                <p className="mt-1 text-sm text-gray-500">Gán vào phim bằng ID phim (movie_id)</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-gray-700 bg-gray-800 p-6">
@@ -106,13 +103,16 @@ export default function AdminEpisodeCreatePage() {
                         className="w-full rounded-lg border border-gray-600 bg-gray-900 px-4 py-2.5 text-sm text-white focus:border-red-500 focus:outline-none"
                     />
                 </div>
-                <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full rounded-lg bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                >
-                    {saving ? 'Đang tạo…' : 'Tạo tập phim'}
-                </button>
+                <div className="flex flex-col gap-4 border-t border-gray-700 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/episodes">Danh sách tập phim</AdminBackLink>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="w-full rounded-lg bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 sm:w-auto sm:min-w-[160px] sm:px-6"
+                    >
+                        {saving ? 'Đang tạo…' : 'Tạo tập phim'}
+                    </button>
+                </div>
             </form>
         </div>
     );

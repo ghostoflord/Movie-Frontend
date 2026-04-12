@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ratingAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 
 export default function AdminRatingNewPage() {
@@ -29,9 +29,6 @@ export default function AdminRatingNewPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader title="Thêm rating" />
-            <Link href="/admin/ratings" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách ratings
-            </Link>
 
             <form onSubmit={onSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
                 <div>
@@ -57,13 +54,17 @@ export default function AdminRatingNewPage() {
                     />
                 </div>
 
-                <div className="flex justify-end">
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang tạo…' : 'Tạo'}
-                    </button>
+                <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/ratings">Danh sách ratings</AdminBackLink>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang tạo…' : 'Tạo'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

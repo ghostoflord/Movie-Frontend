@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { serverAPI } from '@/lib/api';
 import type { Server } from '@/types/admin-entities';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
 
@@ -83,9 +83,7 @@ export default function AdminServerEditPage({ params }: { params: Promise<{ id: 
     return (
         <div className="space-y-6">
             <AdminPageHeader title={`Sửa server #${item.id}`} />
-            <Link href="/admin/servers" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách servers
-            </Link>
+            <AdminBackLink href="/admin/servers">Danh sách servers</AdminBackLink>
 
             <form onSubmit={onSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
                 <div>
@@ -118,13 +116,17 @@ export default function AdminServerEditPage({ params }: { params: Promise<{ id: 
                     Active
                 </label>
 
-                <div className="flex justify-end">
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang lưu…' : 'Lưu'}
-                    </button>
+                <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/servers">Danh sách servers</AdminBackLink>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang lưu…' : 'Lưu'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import PencilIcon from '@/components/icons/PencilIcon';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import TrashIcon from '@/components/icons/TrashIcon';
 import { movieAPI } from '@/lib/api';
 import { Movie } from '@/types/auth';
@@ -102,9 +102,9 @@ export default function MovieDetailPage({ params }: { params: Promise<{ id: stri
         return (
             <div className="text-center py-12">
                 <h2 className="text-2xl text-white">Không tìm thấy phim</h2>
-                <Link href="/admin/movies" className="text-red-500 hover:text-red-400 mt-4 inline-block">
-                    ← Quay lại danh sách
-                </Link>
+                <div className="mt-4 flex justify-center sm:justify-start">
+                    <AdminBackLink href="/admin/movies">Quay lại danh sách phim</AdminBackLink>
+                </div>
             </div>
         );
     }
