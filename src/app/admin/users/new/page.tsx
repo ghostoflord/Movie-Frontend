@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { adminUserAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
+import { UserAvatarInput } from '@/components/admin/user-avatar-input';
 
 export default function AdminUserNewPage() {
     const router = useRouter();
     const [saving, setSaving] = useState(false);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [form, setForm] = useState({
         name: '',
         email: '',
@@ -23,14 +25,17 @@ export default function AdminUserNewPage() {
         e.preventDefault();
         setSaving(true);
         try {
-            await adminUserAPI.create({
-                name: form.name,
-                email: form.email,
-                password: form.password,
-                role: form.role,
-                active: form.active,
-                gender: form.gender || null,
-            });
+            await adminUserAPI.create(
+                {
+                    name: form.name,
+                    email: form.email,
+                    password: form.password,
+                    role: form.role,
+                    active: form.active,
+                    gender: form.gender || null,
+                },
+                avatarFile,
+            );
             router.push('/admin/users');
         } catch (err) {
             alert(toUserErrorMessage((err as any)?.response?.data ?? (err as any)?.message, { fallback: 'Tạo user thất bại.' }));
@@ -42,12 +47,9 @@ export default function AdminUserNewPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader title="Thêm user" />
-            <Link href="/admin/users" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách user
-            </Link>
 
-            <form onSubmit={onSubmit} className="max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
-                <Field label="Tên *">
+            <form onSubmit={onSubmit} className="w-full max-w-none rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
+                <Field label="Tên" required>
                     <input
                         required
                         value={form.name}
@@ -55,7 +57,7 @@ export default function AdminUserNewPage() {
                         className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
                     />
                 </Field>
-                <Field label="Email *">
+                <Field label="Email" required>
                     <input
                         type="email"
                         required
@@ -64,7 +66,7 @@ export default function AdminUserNewPage() {
                         className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
                     />
                 </Field>
-                <Field label="Password *">
+                <Field label="Password" required>
                     <input
                         type="password"
                         required
@@ -74,28 +76,28 @@ export default function AdminUserNewPage() {
                     />
                 </Field>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Role">
-                        <select
-                            value={form.role}
-                            onChange={(e) => setForm({ ...form, role: e.target.value })}
-                            className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
-                        >
-                            <option value="USER">USER</option>
-                            <option value="ADMIN">ADMIN</option>
-                        </select>
-                    </Field>
-                    <Field label="Active">
-                        <label className="flex items-center gap-2 text-sm text-zinc-300">
-                            <input
-                                type="checkbox"
-                                checked={form.active}
-                                onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                            />
-                            {form.active ? 'Đang hoạt động' : 'Tạm khóa'}
-                        </label>
-                    </Field>
-                </div>
+                <UserAvatarInput onFileChange={setAvatarFile} />
+
+                <Field label="Role">
+                    <select
+                        value={form.role}
+                        onChange={(e) => setForm({ ...form, role: e.target.value })}
+                        className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
+                    >
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </Field>
+                <Field label="Active">
+                    <label className="flex min-h-[42px] items-center gap-2 text-sm text-zinc-300">
+                        <input
+                            type="checkbox"
+                            checked={form.active}
+                            onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                        />
+                        {form.active ? 'Đang hoạt động' : 'Tạm khóa'}
+                    </label>
+                </Field>
 
                 <Field label="Gender">
                     <select
@@ -110,23 +112,34 @@ export default function AdminUserNewPage() {
                     </select>
                 </Field>
 
-                <div className="flex justify-end">
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang tạo…' : 'Tạo user'}
-                    </button>
+                <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/users">Danh sách user</AdminBackLink>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang tạo…' : 'Tạo user'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
     return (
         <div className="space-y-1">
-            <label className="block text-sm text-zinc-400">{label}</label>
+            <label className="block text-sm text-zinc-400">
+                {label}
+                {required ? (
+                    <span className="ml-0.5 font-semibold text-[#e50914]" aria-hidden>
+                        *
+                    </span>
+                ) : null}
+            </label>
             {children}
         </div>
     );

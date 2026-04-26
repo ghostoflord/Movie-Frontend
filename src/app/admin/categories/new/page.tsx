@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { categoryAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 
 export default function AdminCategoryNewPage() {
@@ -29,9 +29,7 @@ export default function AdminCategoryNewPage() {
     return (
         <div className="space-y-6">
             <AdminPageHeader title="Thêm thể loại" />
-            <Link href="/admin/categories" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách thể loại
-            </Link>
+            <AdminBackLink href="/admin/categories">Danh sách thể loại</AdminBackLink>
 
             <form onSubmit={onSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
                 <div>
@@ -52,13 +50,17 @@ export default function AdminCategoryNewPage() {
                     />
                 </div>
 
-                <div className="flex justify-end">
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang tạo…' : 'Tạo'}
-                    </button>
+                <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/categories">Danh sách thể loại</AdminBackLink>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang tạo…' : 'Tạo'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -11,6 +11,8 @@ export type Actor = {
     name: string;
     slug?: string | null;
     thumb_url?: string | null;
+    bio?: string | null;
+    avatar?: string | null;
     created_at?: string;
     updated_at?: string;
 };
@@ -61,6 +63,7 @@ export type AdminUserItem = {
     gender: string | null;
     provider: string;
     active: boolean;
+    avatar?: string | null;
     created_at: string;
     updated_at: string;
 };

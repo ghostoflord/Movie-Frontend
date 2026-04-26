@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { movieAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 
 export default function AdminMovieCreatePage() {
     const router = useRouter();
@@ -59,10 +59,6 @@ export default function AdminMovieCreatePage() {
             <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Thêm phim</h1>
             </div>
-
-            <Link href="/admin/movies" className="text-sm text-zinc-400 hover:text-white">
-                ← Danh sách phim
-            </Link>
 
             <form onSubmit={onSubmit} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -163,13 +159,17 @@ export default function AdminMovieCreatePage() {
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
-                    <button
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang tạo…' : 'Tạo phim'}
-                    </button>
+                <div className="mt-6 flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    <AdminBackLink href="/admin/movies">Danh sách phim</AdminBackLink>
+                    <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                            {saving ? 'Đang tạo…' : 'Tạo phim'}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

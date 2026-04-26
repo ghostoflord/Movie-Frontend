@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveUserAvatarUrl } from '@/lib/avatar';
 import { Search, User, ChevronDown, LogOut, Shield, Heart } from 'lucide-react';
 
 export default function Header() {
@@ -34,7 +35,8 @@ export default function Header() {
         if (href !== '/' && pathname.startsWith(`${href}/`)) return true;
         return false;
     };
-    
+
+    const avatarUrl = user ? resolveUserAvatarUrl(user.avatar) : null;
 
     return (
         <header
@@ -94,8 +96,19 @@ export default function Header() {
         >
             {/* Avatar */}
             <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-red-900/40">
-                    {user.email?.[0]?.toUpperCase() ?? <User size={15} />}
+                <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-500 to-red-700 text-sm font-bold text-white shadow-lg shadow-red-900/40">
+                    {avatarUrl ? (
+                        <img
+                            src={avatarUrl}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover"
+                            referrerPolicy="no-referrer"
+                        />
+                    ) : (
+                        user.name?.[0]?.toUpperCase() ??
+                        user.email?.[0]?.toUpperCase() ??
+                        <User size={15} />
+                    )}
                 </div>
                 {/* Online dot */}
                 <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-black" />
@@ -125,8 +138,19 @@ export default function Header() {
                     {/* User info */}
                     <div className="px-4 pt-4 pb-3">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                {user.email?.[0]?.toUpperCase() ?? <User size={15} />}
+                            <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-red-500 to-red-700 text-sm font-bold text-white">
+                                {avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt=""
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                        referrerPolicy="no-referrer"
+                                    />
+                                ) : (
+                                    user.name?.[0]?.toUpperCase() ??
+                                    user.email?.[0]?.toUpperCase() ??
+                                    <User size={15} />
+                                )}
                             </div>
                             <div className="min-w-0">
                                 <p className="text-[11px] text-gray-500 leading-none mb-1">Tài khoản</p>

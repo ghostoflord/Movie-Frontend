@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { episodeAPI } from '@/lib/api';
 import { unwrapData } from '@/lib/unwrap-api';
 import type { AdminEpisode } from '@/types/episode';
@@ -95,9 +96,9 @@ export default function AdminEpisodeDetailPage({ params }: { params: Promise<{ i
         return (
             <div className="py-12 text-center">
                 <h2 className="text-2xl text-white">Không tìm thấy tập phim</h2>
-                <Link href="/admin/episodes" className="mt-4 inline-block text-red-400 hover:text-red-300">
-                    ← Danh sách tập phim
-                </Link>
+                <div className="mt-4 flex justify-center sm:justify-start">
+                    <AdminBackLink href="/admin/episodes">Danh sách tập phim</AdminBackLink>
+                </div>
             </div>
         );
     }
@@ -106,10 +107,7 @@ export default function AdminEpisodeDetailPage({ params }: { params: Promise<{ i
         <div className="mx-auto max-w-2xl space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <Link href="/admin/episodes" className="text-sm text-gray-400 hover:text-white">
-                        ← Danh sách tập phim
-                    </Link>
-                    <h1 className="mt-2 text-2xl font-bold text-white">Tập #{episode.id}</h1>
+                    <h1 className="text-2xl font-bold text-white">Tập #{episode.id}</h1>
                     <p className="text-sm text-gray-500">
                         Tạo: {new Date(episode.created_at).toLocaleString('vi-VN')} · Cập nhật:{' '}
                         {new Date(episode.updated_at).toLocaleString('vi-VN')}
@@ -189,13 +187,16 @@ export default function AdminEpisodeDetailPage({ params }: { params: Promise<{ i
                             placeholder="https://..."
                         />
                     </div>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="w-full rounded-lg bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
-                    >
-                        {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
-                    </button>
+                    <div className="flex flex-col gap-4 border-t border-gray-700 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                        <AdminBackLink href="/admin/episodes">Danh sách tập phim</AdminBackLink>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="w-full rounded-lg bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 sm:w-auto sm:min-w-[160px] sm:px-6"
+                        >
+                            {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
