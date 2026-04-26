@@ -142,6 +142,12 @@ export const movieAPI = {
     // Xóa phim
     deleteMovie: (id: string) =>
         apiService.delete(`/movies/${id}`),
+
+    // Gán / bỏ gán diễn viên
+    assignActors: (movieId: string | number, actorIds: number[]) =>
+        apiService.post(`/movies/${movieId}/actors`, { actor_ids: actorIds }),
+    unassignActor: (movieId: string | number, actorId: string | number) =>
+        apiService.delete(`/movies/${movieId}/actors/${actorId}`),
 };
 
 export const episodeAPI = {
@@ -189,11 +195,37 @@ export const categoryAPI = {
 };
 
 export const actorAPI = {
-    list: () => apiService.get<unknown>('/actors').then(unwrapList<Actor>),
+    list: (params?: { page?: number; per_page?: number; name?: string }) => apiService.get<unknown>('/actors', params),
     get: (id: string | number) => apiService.get<unknown>(`/actors/${id}`).then((r) => unwrapOne<Actor>(r)),
-    create: (data: Partial<Actor>) => apiService.post<unknown>('/actors', data).then((r) => unwrapOne<Actor>(r)),
-    update: (id: string | number, data: Partial<Actor>) =>
-        apiService.put<unknown>(`/actors/${id}`, data).then((r) => unwrapOne<Actor>(r)),
+    create: (
+        data: Partial<Pick<Actor, 'name' | 'slug' | 'bio' | 'thumb_url' | 'avatar'>>,
+        avatarFile?: File | null,
+    ) => {
+        if (avatarFile) {
+            const fd = new FormData();
+            if (data.name != null) fd.append('name', String(data.name));
+            if (data.slug != null) fd.append('slug', String(data.slug));
+            if (data.bio != null) fd.append('bio', String(data.bio));
+            fd.append('avatar', avatarFile);
+            return apiService.postForm<unknown>('/actors', fd).then((r) => unwrapOne<Actor>(r));
+        }
+        return apiService.post<unknown>('/actors', data).then((r) => unwrapOne<Actor>(r));
+    },
+    update: (
+        id: string | number,
+        data: Partial<Pick<Actor, 'name' | 'slug' | 'bio' | 'thumb_url' | 'avatar'>>,
+        avatarFile?: File | null,
+    ) => {
+        if (avatarFile) {
+            const fd = new FormData();
+            if (data.name != null) fd.append('name', String(data.name));
+            if (data.slug != null) fd.append('slug', String(data.slug));
+            if (data.bio != null) fd.append('bio', String(data.bio));
+            fd.append('avatar', avatarFile);
+            return apiService.putForm<unknown>(`/actors/${id}`, fd).then((r) => unwrapOne<Actor>(r));
+        }
+        return apiService.put<unknown>(`/actors/${id}`, data).then((r) => unwrapOne<Actor>(r));
+    },
     delete: (id: string | number) => apiService.delete(`/actors/${id}`),
 };
 

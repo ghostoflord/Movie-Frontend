@@ -8,6 +8,7 @@ import { toUserErrorMessage } from '@/lib/api-error';
 import { AdminBackLink } from '@/components/admin/admin-back-link';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
+import { UserAvatarInput } from '@/components/admin/user-avatar-input';
 
 export default function AdminActorEditPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -19,7 +20,8 @@ export default function AdminActorEditPage({ params }: { params: Promise<{ id: s
 
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
-    const [thumbUrl, setThumbUrl] = useState('');
+    const [bio, setBio] = useState('');
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -41,7 +43,7 @@ export default function AdminActorEditPage({ params }: { params: Promise<{ id: s
                 setItem(a);
                 setName(a.name || '');
                 setSlug(a.slug || '');
-                setThumbUrl(a.thumb_url || '');
+                setBio((a.bio as any) || '');
             }
         } catch (e) {
             setError(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Không tải được diễn viên.' }));
@@ -59,7 +61,11 @@ export default function AdminActorEditPage({ params }: { params: Promise<{ id: s
         if (!id) return;
         setSaving(true);
         try {
-            await actorAPI.update(id, { name, slug: slug || null, thumb_url: thumbUrl || null });
+            await actorAPI.update(
+                id,
+                { name, slug: slug || null, bio: bio || null },
+                avatarFile,
+            );
             router.push('/admin/actors');
         } catch (e) {
             alert(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Cập nhật thất bại.' }));
@@ -101,13 +107,16 @@ export default function AdminActorEditPage({ params }: { params: Promise<{ id: s
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-sm text-zinc-400">Thumb URL</label>
-                    <input
-                        value={thumbUrl}
-                        onChange={(e) => setThumbUrl(e.target.value)}
+                    <label className="mb-1 block text-sm text-zinc-400">Bio</label>
+                    <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        rows={4}
                         className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
                     />
                 </div>
+
+                <UserAvatarInput existingAvatarPath={item.avatar ?? null} onFileChange={setAvatarFile} />
 
                 <div className="flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
                     <AdminBackLink href="/admin/actors">Danh sách diễn viên</AdminBackLink>

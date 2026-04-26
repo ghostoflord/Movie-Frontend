@@ -11,6 +11,8 @@ export type Actor = {
     name: string;
     slug?: string | null;
     thumb_url?: string | null;
+    bio?: string | null;
+    avatar?: string | null;
     created_at?: string;
     updated_at?: string;
 };
