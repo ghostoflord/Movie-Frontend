@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { parseMoviesListResponse, type PublicMovieListItem } from '@/lib/movies-public';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { ClientPagination } from '@/components/client/client-pagination';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 const FETCH_PER_PAGE = 120;
@@ -262,15 +263,7 @@ export default function CategoryMoviesView({
         return filteredSorted.slice(start, start + PAGE_SIZE);
     }, [filteredSorted, safePage]);
 
-    const pageNumbers = useMemo(() => {
-        if (lastPage <= 1) return [];
-        const max = 12;
-        if (lastPage <= max) return Array.from({ length: lastPage }, (_, i) => i + 1);
-        let start = Math.max(1, safePage - 5);
-        const end = Math.min(lastPage, start + max - 1);
-        if (end - start < max - 1) start = Math.max(1, end - max + 1);
-        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-    }, [lastPage, safePage]);
+    // pagination UI dùng `ClientPagination`
 
     const hotToday = useMemo(() => {
         const only = rawList.filter(predicate);
@@ -425,27 +418,7 @@ export default function CategoryMoviesView({
                                 ))}
                             </ul>
 
-                            {lastPage > 1 && (
-                                <nav
-                                    className="mt-10 flex flex-wrap items-center justify-center gap-2"
-                                    aria-label="Phân trang"
-                                >
-                                    {pageNumbers.map((p) => (
-                                        <Link
-                                            key={p}
-                                            href={hrefPage(p)}
-                                            className={[
-                                                'flex min-w-[2.5rem] items-center justify-center rounded border px-3 py-2 text-sm transition',
-                                                p === safePage
-                                                    ? 'border-[#e50914] bg-[#e50914] font-semibold text-white'
-                                                    : 'border-zinc-600 bg-zinc-900 text-zinc-300 hover:border-[#e50914]/50',
-                                            ].join(' ')}
-                                        >
-                                            {p}
-                                        </Link>
-                                    ))}
-                                </nav>
-                            )}
+                            <ClientPagination page={safePage} lastPage={lastPage} hrefForPage={hrefPage} />
                         </>
                     )}
                 </div>

@@ -2,16 +2,20 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import PlusIcon from '@/components/icons/PlusIcon';
 import PencilIcon from '@/components/icons/PencilIcon';
 import TrashIcon from '@/components/icons/TrashIcon';
 import { episodeAPI } from '@/lib/api';
 import type { AdminEpisode, EpisodesPagination } from '@/types/episode';
+import { AdminPagination } from '@/components/admin/admin-pagination';
 
 function AdminEpisodesContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const perPage = Math.max(1, parseInt(searchParams.get('per_page') || '15', 10) || 15);
 
     const [episodes, setEpisodes] = useState<AdminEpisode[]>([]);
     const [pagination, setPagination] = useState<EpisodesPagination | null>(null);
@@ -22,7 +26,7 @@ function AdminEpisodesContent() {
         setLoading(true);
         setError(null);
         try {
-            const res = await episodeAPI.getEpisodes({ page, per_page: 15 });
+            const res = await episodeAPI.getEpisodes({ page, per_page: perPage });
             setEpisodes(Array.isArray(res.data) ? res.data : []);
             setPagination(res.pagination ?? null);
         } catch (e) {
@@ -33,7 +37,7 @@ function AdminEpisodesContent() {
         } finally {
             setLoading(false);
         }
-    }, [page]);
+    }, [page, perPage]);
 
     useEffect(() => {
         fetchEpisodes();
@@ -153,17 +157,28 @@ function AdminEpisodesContent() {
             </div>
 
             {pagination && pagination.last_page > 1 && (
-                <nav className="flex flex-wrap items-center justify-center gap-2" aria-label="Phân trang">
-                    <PaginationLink disabled={pagination.current_page <= 1} page={pagination.current_page - 1}>
-                        ← Trước
-                    </PaginationLink>
-                    <span className="px-3 text-sm text-gray-400">
-                        Trang {pagination.current_page} / {pagination.last_page}
-                    </span>
-                    <PaginationLink disabled={pagination.current_page >= pagination.last_page} page={pagination.current_page + 1}>
-                        Sau →
-                    </PaginationLink>
-                </nav>
+                <AdminPagination
+                    page={pagination.current_page}
+                    lastPage={pagination.last_page}
+                    perPage={pagination.per_page ?? perPage}
+                    onPerPageChange={(n) => {
+                        const qs = new URLSearchParams(searchParams.toString());
+                        qs.set('per_page', String(n));
+                        qs.set('page', '1');
+                        router.push(`/admin/episodes?${qs.toString()}`);
+                    }}
+                    onPageChange={(p) => {
+                        const qs = new URLSearchParams(searchParams.toString());
+                        qs.set('page', String(p));
+                        qs.set('per_page', String(perPage));
+                        router.push(`/admin/episodes?${qs.toString()}`);
+                    }}
+                    rightSlot={
+                        <div className="text-sm text-gray-400">
+                            Trang {pagination.current_page} / {pagination.last_page}
+                        </div>
+                    }
+                />
             )}
         </div>
     );
@@ -183,28 +198,4 @@ export default function AdminEpisodesPage() {
     );
 }
 
-function PaginationLink({
-    page,
-    disabled,
-    children,
-}: {
-    page: number;
-    disabled: boolean;
-    children: React.ReactNode;
-}) {
-    if (disabled) {
-        return (
-            <span className="cursor-not-allowed rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm text-gray-600">
-                {children}
-            </span>
-        );
-    }
-    return (
-        <Link
-            href={`/admin/episodes?page=${page}`}
-            className="rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 text-sm text-gray-200 transition hover:border-red-500/50 hover:bg-gray-700"
-        >
-            {children}
-        </Link>
-    );
-}
+// Pagination UI dùng chung: `AdminPagination` (không tự call API)

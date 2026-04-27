@@ -8,6 +8,7 @@ import { toUserErrorMessage } from '@/lib/api-error';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
+import { AdminPagination } from '@/components/admin/admin-pagination';
 
 type ActorsPayload = {
     data: Actor[];
@@ -67,33 +68,7 @@ export default function AdminActorsPage() {
         return [pageLabel, `${total} diễn viên`].filter(Boolean).join(' · ');
     }, [meta, items.length, page]);
 
-    const canPrev = page > 1;
-    const canNext = meta?.last_page ? page < meta.last_page : items.length === perPage;
-    const lastPage = meta?.last_page ?? (items.length === perPage ? page + 1 : page);
-
-    const pages = useMemo(() => {
-        const total = meta?.last_page ?? Math.max(1, page);
-        const max = Math.max(1, total);
-        const cur = Math.min(Math.max(1, page), max);
-
-        const out: Array<number | '…'> = [];
-        const add = (n: number | '…') => out.push(n);
-
-        if (max <= 7) {
-            for (let i = 1; i <= max; i++) add(i);
-            return out;
-        }
-
-        add(1);
-        const left = Math.max(2, cur - 1);
-        const right = Math.min(max - 1, cur + 1);
-
-        if (left > 2) add('…');
-        for (let i = left; i <= right; i++) add(i);
-        if (right < max - 1) add('…');
-        add(max);
-        return out;
-    }, [meta?.last_page, page]);
+    const lastPage = meta?.last_page ?? Math.max(1, page);
 
     const onDelete = async (id: number) => {
         if (!confirm('Xóa diễn viên này?')) return;
@@ -245,82 +220,24 @@ export default function AdminActorsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        disabled={!canPrev || loading}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/40 text-zinc-200 transition hover:bg-zinc-900 disabled:opacity-50"
-                        aria-label="Trang trước"
-                        title="Trang trước"
-                    >
-                        <span aria-hidden>‹</span>
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                        {pages.map((p, idx) =>
-                            p === '…' ? (
-                                <span key={`e-${idx}`} className="px-1 text-sm text-zinc-500">
-                                    …
-                                </span>
-                            ) : (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => setPage(p)}
-                                    className={[
-                                        'min-w-10 rounded-xl border px-3 py-2 text-sm transition',
-                                        p === page
-                                            ? 'border-red-500/40 bg-red-500/10 text-white'
-                                            : 'border-zinc-700 bg-zinc-900/40 text-zinc-200 hover:bg-zinc-900',
-                                    ].join(' ')}
-                                >
-                                    {p}
-                                </button>
-                            ),
-                        )}
-                    </div>
-
-                    <button
-                        type="button"
-                        disabled={(!meta?.last_page && !canNext) || (meta?.last_page ? page >= meta.last_page : !canNext) || loading}
-                        onClick={() => setPage((p) => p + 1)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/40 text-zinc-200 transition hover:bg-zinc-900 disabled:opacity-50"
-                        aria-label="Trang sau"
-                        title="Trang sau"
-                    >
-                        <span aria-hidden>›</span>
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="text-sm text-zinc-500">
-                        Trang {meta?.current_page ?? page}
-                        {meta?.last_page ? ` / ${meta.last_page}` : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-sm text-zinc-500" htmlFor="actors-per-page">
-                            / page
-                        </label>
-                        <select
-                            id="actors-per-page"
-                            value={perPage}
-                            onChange={(e) => {
-                                setPerPage(Number(e.target.value));
-                                setPage(1);
-                            }}
-                            className="h-10 rounded-xl border border-zinc-700 bg-zinc-900/40 px-3 text-sm text-zinc-200 outline-none transition focus:border-red-500/50"
-                        >
-                            {[10, 20, 50, 100].map((n) => (
-                                <option key={n} value={n}>
-                                    {n}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
+            {lastPage > 1 ? (
+                <AdminPagination
+                    page={meta?.current_page ?? page}
+                    lastPage={lastPage}
+                    onPageChange={(p) => setPage(p)}
+                    perPage={perPage}
+                    onPerPageChange={(n) => {
+                        setPerPage(n);
+                        setPage(1);
+                    }}
+                    rightSlot={
+                        <div className="text-sm text-zinc-500">
+                            Trang {meta?.current_page ?? page}
+                            {meta?.last_page ? ` / ${meta.last_page}` : null}
+                        </div>
+                    }
+                />
+            ) : null}
         </div>
     );
 }

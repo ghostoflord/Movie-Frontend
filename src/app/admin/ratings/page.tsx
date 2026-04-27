@@ -1,35 +1,67 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ratingAPI } from '@/lib/api';
 import type { Rating } from '@/types/admin-entities';
 import { toUserErrorMessage } from '@/lib/api-error';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
+import { AdminPagination } from '@/components/admin/admin-pagination';
+
+type RatingsPayload = {
+    data: Rating[];
+    meta?: { current_page?: number; total?: number; last_page?: number; per_page?: number };
+};
+
+function unwrapRatings(raw: unknown): RatingsPayload {
+    if (raw && typeof raw === 'object') {
+        const o = raw as any;
+        if (Array.isArray(o.data)) return { data: o.data, meta: o.meta };
+        if (o.data && typeof o.data === 'object' && Array.isArray(o.data.data)) {
+            return { data: o.data.data, meta: o.data.meta ?? o.meta };
+        }
+        if (Array.isArray(o.ratings)) return { data: o.ratings, meta: o.meta };
+    }
+    return { data: [] };
+}
 
 export default function AdminRatingsPage() {
     const [items, setItems] = useState<Rating[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [meta, setMeta] = useState<RatingsPayload['meta'] | undefined>(undefined);
 
     const fetchList = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const list = await ratingAPI.list();
-            setItems(list);
+            const raw = await ratingAPI.listPaged({ page, per_page: perPage });
+            const p = unwrapRatings(raw);
+            setItems(p.data);
+            setMeta(p.meta);
         } catch (e) {
             setError(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Không tải được ratings.' }));
             setItems([]);
+            setMeta(undefined);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, perPage]);
 
     useEffect(() => {
         fetchList();
     }, [fetchList]);
+
+    const subtitle = useMemo(() => {
+        const total = meta?.total ?? items.length;
+        const pageLabel = meta?.current_page ? `Trang ${meta.current_page}` : `Trang ${page}`;
+        return [pageLabel, `${total} ratings`].filter(Boolean).join(' · ');
+    }, [meta, items.length, page]);
+
+    const lastPage = meta?.last_page ?? Math.max(1, page);
 
     const onDelete = async (id: number) => {
         if (!confirm('Xóa rating này?')) return;
@@ -52,7 +84,7 @@ export default function AdminRatingsPage() {
 
     return (
         <div className="space-y-6">
-            <AdminPageHeader title="Ratings" subtitle={`${items.length} ratings`} actionHref="/admin/ratings/new" actionLabel="Thêm rating" />
+            <AdminPageHeader title="Ratings" subtitle={subtitle} actionHref="/admin/ratings/new" actionLabel="Thêm rating" />
 
             <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
                 <table className="w-full">
@@ -93,9 +125,35 @@ export default function AdminRatingsPage() {
                                 </td>
                             </tr>
                         ))}
+                        {items.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} className="px-4 py-10 text-center text-sm text-zinc-500">
+                                    Không có rating.
+                                </td>
+                            </tr>
+                        ) : null}
                     </tbody>
                 </table>
             </div>
+
+            {lastPage > 1 ? (
+                <AdminPagination
+                    page={meta?.current_page ?? page}
+                    lastPage={lastPage}
+                    onPageChange={(p) => setPage(p)}
+                    perPage={perPage}
+                    onPerPageChange={(n) => {
+                        setPerPage(n);
+                        setPage(1);
+                    }}
+                    rightSlot={
+                        <div className="text-sm text-zinc-500">
+                            Trang {meta?.current_page ?? page}
+                            {meta?.last_page ? ` / ${meta.last_page}` : null}
+                        </div>
+                    }
+                />
+            ) : null}
         </div>
     );
 }

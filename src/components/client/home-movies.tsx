@@ -7,6 +7,7 @@ import type { MoviesListMeta, PublicMovieListItem } from '@/lib/movies-public';
 import { parseMoviesListResponse } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { ClientPagination } from '@/components/client/client-pagination';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -179,20 +180,11 @@ export default function HomeMovies() {
             )}
 
             {meta && meta.last_page > 1 && (
-                <nav
-                    className="mt-10 flex flex-wrap items-center justify-center gap-2"
-                    aria-label="Phân trang"
-                >
-                    <PaginationLink disabled={meta.current_page <= 1} page={meta.current_page - 1}>
-                        ← Trước
-                    </PaginationLink>
-                    <span className="px-3 text-sm text-zinc-400">
-                        Trang {meta.current_page} / {meta.last_page}
-                    </span>
-                    <PaginationLink disabled={meta.current_page >= meta.last_page} page={meta.current_page + 1}>
-                        Sau →
-                    </PaginationLink>
-                </nav>
+                <ClientPagination
+                    page={meta.current_page}
+                    lastPage={meta.last_page}
+                    hrefForPage={(p) => `/?page=${p}`}
+                />
             )}
         </div>
     );
@@ -340,28 +332,4 @@ function SidebarRow({ movie }: { movie: PublicMovieListItem }) {
     );
 }
 
-function PaginationLink({
-    page,
-    disabled,
-    children,
-}: {
-    page: number;
-    disabled: boolean;
-    children: React.ReactNode;
-}) {
-    if (disabled) {
-        return (
-            <span className="cursor-not-allowed rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-zinc-600">
-                {children}
-            </span>
-        );
-    }
-    return (
-        <Link
-            href={`/?page=${page}`}
-            className="rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-2 text-sm text-zinc-100 transition hover:border-[#e50914]/60 hover:bg-zinc-700"
-        >
-            {children}
-        </Link>
-    );
-}
+// pagination UI: `ClientPagination`

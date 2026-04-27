@@ -143,6 +143,10 @@ export const movieAPI = {
     deleteMovie: (id: string) =>
         apiService.delete(`/movies/${id}`),
 
+    // Paged list (admin)
+    listPaged: (params?: { page?: number; per_page?: number; name?: string }) =>
+        apiService.get<unknown>('/movies', params),
+
     // Gán / bỏ gán diễn viên
     assignActors: (movieId: string | number, actorIds: number[]) =>
         apiService.post(`/movies/${movieId}/actors`, { actor_ids: actorIds }),
@@ -187,6 +191,7 @@ function unwrapOne<T>(raw: unknown): T | null {
 
 export const categoryAPI = {
     list: () => apiService.get<unknown>('/categories').then(unwrapList<Category>),
+    listPaged: (params?: { page?: number; per_page?: number; name?: string }) => apiService.get<unknown>('/categories', params),
     get: (id: string | number) => apiService.get<unknown>(`/categories/${id}`).then((r) => unwrapOne<Category>(r)),
     create: (data: Partial<Category>) => apiService.post<unknown>('/categories', data).then((r) => unwrapOne<Category>(r)),
     update: (id: string | number, data: Partial<Category>) =>
@@ -231,6 +236,7 @@ export const actorAPI = {
 
 export const serverAPI = {
     list: () => apiService.get<unknown>('/servers').then(unwrapList<Server>),
+    listPaged: (params?: { page?: number; per_page?: number; name?: string }) => apiService.get<unknown>('/servers', params),
     get: (id: string | number) => apiService.get<unknown>(`/servers/${id}`).then((r) => unwrapOne<Server>(r)),
     create: (data: Partial<Server>) => apiService.post<unknown>('/servers', data).then((r) => unwrapOne<Server>(r)),
     update: (id: string | number, data: Partial<Server>) =>
@@ -240,6 +246,7 @@ export const serverAPI = {
 
 export const ratingAPI = {
     list: () => apiService.get<unknown>('/ratings').then(unwrapList<Rating>),
+    listPaged: (params?: { page?: number; per_page?: number }) => apiService.get<unknown>('/ratings', params),
     get: (id: string | number) => apiService.get<unknown>(`/ratings/${id}`).then((r) => unwrapOne<Rating>(r)),
     create: (data: { movie_id: number; rating: number }) =>
         apiService.post<unknown>('/ratings', data).then((r) => unwrapOne<Rating>(r)),
