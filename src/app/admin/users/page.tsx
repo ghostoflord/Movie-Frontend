@@ -7,6 +7,7 @@ import type { AdminUserItem } from '@/types/admin-entities';
 import { toUserErrorMessage } from '@/lib/api-error';
 import { AdminPageHeader } from '@/components/admin/admin-shell';
 import { AdminErrorBox } from '@/components/admin/admin-error';
+import { AdminPagination } from '@/components/admin/admin-pagination';
 
 type UsersPayload = {
     data: AdminUserItem[];
@@ -30,12 +31,14 @@ export default function AdminUsersPage() {
     const [meta, setMeta] = useState<UsersPayload['meta'] | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
 
     const fetchList = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const raw = await adminUserAPI.list();
+            const raw = await adminUserAPI.list({ page, per_page: perPage });
             const p = unwrapUsers(raw);
             setItems(p.data);
             setMeta(p.meta);
@@ -50,7 +53,7 @@ export default function AdminUsersPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, perPage]);
 
     useEffect(() => {
         fetchList();
@@ -58,9 +61,11 @@ export default function AdminUsersPage() {
 
     const subtitle = useMemo(() => {
         const total = meta?.total ?? items.length;
-        const page = meta?.current_page ? `Trang ${meta.current_page}` : null;
-        return [page, `${total} user`].filter(Boolean).join(' · ');
-    }, [meta, items.length]);
+        const pageLabel = meta?.current_page ? `Trang ${meta.current_page}` : `Trang ${page}`;
+        return [pageLabel, `${total} user`].filter(Boolean).join(' · ');
+    }, [meta, items.length, page]);
+
+    const lastPage = meta?.last_page ?? Math.max(1, page);
 
     if (loading) {
         return (
@@ -149,6 +154,25 @@ export default function AdminUsersPage() {
                     </tbody>
                 </table>
             </div>
+
+            {lastPage > 1 ? (
+                <AdminPagination
+                    page={meta?.current_page ?? page}
+                    lastPage={lastPage}
+                    onPageChange={(p) => setPage(p)}
+                    perPage={perPage}
+                    onPerPageChange={(n) => {
+                        setPerPage(n);
+                        setPage(1);
+                    }}
+                    rightSlot={
+                        <div className="text-sm text-zinc-500">
+                            Trang {meta?.current_page ?? page}
+                            {meta?.last_page ? ` / ${meta.last_page}` : null}
+                        </div>
+                    }
+                />
+            ) : null}
         </div>
     );
 }

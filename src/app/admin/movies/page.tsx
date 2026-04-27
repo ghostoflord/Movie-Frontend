@@ -1,7 +1,7 @@
 // app/(admin)/movies/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlusIcon from '@/components/icons/PlusIcon';
@@ -10,65 +10,65 @@ import TrashIcon from '@/components/icons/TrashIcon';
 
 import { Movie } from '@/types/auth';
 import MovieDetailModal from '@/components/modal/movie_detail_modal';
+import { movieAPI } from '@/lib/api';
+import { AdminPagination } from '@/components/admin/admin-pagination';
+import { toUserErrorMessage } from '@/lib/api-error';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+type MoviesPayload = {
+    data: Movie[];
+    meta?: { current_page?: number; total?: number; last_page?: number; per_page?: number };
+};
+
+function unwrapMovies(raw: unknown): MoviesPayload {
+    if (raw && typeof raw === 'object') {
+        const o = raw as any;
+        if (Array.isArray(o.data)) return { data: o.data, meta: o.meta };
+        if (o.data && typeof o.data === 'object' && Array.isArray(o.data.data)) {
+            return { data: o.data.data, meta: o.data.meta ?? o.meta };
+        }
+        if (Array.isArray(o.movies)) return { data: o.movies, meta: o.meta };
+    }
+    return { data: [] };
+}
 
 export default function MoviesPage() {
     const router = useRouter();
     const [movies, setMovies] = useState<Movie[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+    const [meta, setMeta] = useState<MoviesPayload['meta'] | undefined>(undefined);
 
     // State cho modal
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMovie, setModalMovie] = useState<Movie | null>(null);
 
-    useEffect(() => {
-        fetchMovies();
-    }, []);
-
-    const fetchMovies = async () => {
+    const fetchMovies = useCallback(async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const res = await fetch(`${API_URL}/movies`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const data = await res.json();
-
-            if (Array.isArray(data)) {
-                setMovies(data);
-            }
-            else if (data.data && Array.isArray(data.data)) {
-                setMovies(data.data);
-            }
-            else if (data.movies && Array.isArray(data.movies)) {
-                setMovies(data.movies);
-            }
-            else if (data && typeof data === 'object' && data.id) {
-                setMovies([data]);
-            }
-            else {
-                console.error('Dữ liệu không đúng định dạng:', data);
-                setMovies([]);
-            }
-
-        } catch (error) {
-            console.error('Failed to fetch movies:', error);
+            const raw = await movieAPI.listPaged({ page, per_page: perPage });
+            const p = unwrapMovies(raw);
+            setMovies(p.data);
+            setMeta(p.meta);
+        } catch (e) {
+            setError(toUserErrorMessage((e as any)?.response?.data ?? (e as any)?.message, { fallback: 'Không tải được phim.' }));
             setMovies([]);
+            setMeta(undefined);
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, perPage]);
+
+    useEffect(() => {
+        fetchMovies();
+    }, [fetchMovies]);
 
     const fetchMovieDetail = async (id: number) => {
         try {
-            const res = await fetch(`${API_URL}/movies/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const data = await res.json();
+            const data = await movieAPI.getMovie(String(id));
             setModalMovie(data);
             setIsModalOpen(true);
         } catch (error) {
@@ -87,13 +87,8 @@ export default function MoviesPage() {
         if (!confirm('Bạn có chắc muốn xóa phim này?')) return;
 
         try {
-            await fetch(`${API_URL}/movies/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            fetchMovies();
+            await movieAPI.deleteMovie(String(id));
+            await fetchMovies();
             setIsModalOpen(false);
         } catch (error) {
             console.error('Failed to delete movie:', error);
@@ -120,7 +115,7 @@ export default function MoviesPage() {
                     <div>
                         <h2 className="text-2xl font-bold text-white">Quản lý phim</h2>
                         <p className="text-gray-400 mt-1">
-                            {movies.length} phim trong hệ thống
+                            {meta?.total ?? movies.length} phim trong hệ thống
                         </p>
                     </div>
                     <Link
@@ -131,6 +126,10 @@ export default function MoviesPage() {
                         Thêm phim
                     </Link>
                 </div>
+
+                {error ? (
+                    <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>
+                ) : null}
 
                 {/* Table */}
                 <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden w-full">
@@ -212,6 +211,27 @@ export default function MoviesPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {((meta?.last_page ?? 1) > 1) ? (
+                    <div className="mt-6">
+                        <AdminPagination
+                            page={meta?.current_page ?? page}
+                            lastPage={meta?.last_page ?? Math.max(1, page)}
+                            onPageChange={(p) => setPage(p)}
+                            perPage={perPage}
+                            onPerPageChange={(n) => {
+                                setPerPage(n);
+                                setPage(1);
+                            }}
+                            rightSlot={
+                                <div className="text-sm text-gray-400">
+                                    Trang {meta?.current_page ?? page}
+                                    {meta?.last_page ? ` / ${meta.last_page}` : null}
+                                </div>
+                            }
+                        />
+                    </div>
+                ) : null}
             </div>
 
             {/* Movie Detail Modal */}
