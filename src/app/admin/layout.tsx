@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import AdminSidebar from '@/components/admin/sidebar';
 import AdminHeader from '@/components/admin/header';
+import { isAdminRole } from '@/lib/roles';
 
 export default function AdminLayout({
     children,
@@ -16,7 +17,7 @@ export default function AdminLayout({
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
-        if (!isLoading && (!user || user.role !== 'ADMIN')) {
+        if (!isLoading && (!user || !isAdminRole(user.role))) {
             router.push('/');
         }
     }, [user, isLoading, router]);
@@ -29,7 +30,7 @@ export default function AdminLayout({
         );
     }
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || !isAdminRole(user.role)) {
         return null;
     }
 

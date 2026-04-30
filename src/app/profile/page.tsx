@@ -6,11 +6,12 @@ import { Calendar, Heart, Mail, Shield, Sparkles, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { recommendationsAPI } from '@/lib/api';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
+import { isAdminRole } from '@/lib/roles';
 import { toUserErrorMessage } from '@/lib/api-error';
 import type { RecommendationMovie } from '@/types/admin-entities';
 
 function roleLabel(role: string | undefined) {
-    if (role === 'ADMIN') return 'Quản trị viên';
+    if (isAdminRole(role)) return 'Quản trị viên';
     return 'Thành viên';
 }
 
@@ -144,7 +145,7 @@ export default function ProfilePage() {
                             </p>
                             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                                 <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-white/10">
-                                    {user.role === 'ADMIN' ? (
+                                    {isAdminRole(user.role) ? (
                                         <Shield className="h-3.5 w-3.5 text-amber-400/90" aria-hidden />
                                     ) : (
                                         <User className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
@@ -188,7 +189,7 @@ export default function ProfilePage() {
                             <Heart className="h-4 w-4 text-red-500/80" aria-hidden />
                             Phim yêu thích
                         </Link>
-                        {user.role === 'ADMIN' ? (
+                        {isAdminRole(user.role) ? (
                             <Link
                                 href="/admin"
                                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"

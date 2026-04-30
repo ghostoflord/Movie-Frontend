@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
 import { Search, User, ChevronDown, LogOut, Shield, Heart } from 'lucide-react';
+import { isAdminRole } from '@/lib/roles';
 
 export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -167,7 +168,7 @@ export default function Header() {
                         {[
                             { href: '/profile', icon: <User size={14} />, label: 'Hồ sơ của tôi' },
                             { href: '/favorites', icon: <Heart size={14} />, label: 'Phim yêu thích' },
-                            ...(user.role === 'ADMIN' ? [{ href: '/admin', icon: <Shield size={14} />, label: 'Quản trị viên' }] : []),
+                            ...(isAdminRole(user.role) ? [{ href: '/admin', icon: <Shield size={14} />, label: 'Quản trị viên' }] : []),
                         ].map((item) => (
                             <Link
                                 key={item.href}
