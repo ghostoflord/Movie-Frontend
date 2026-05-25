@@ -60,16 +60,30 @@ export default function Header() {
                         {/* Navigation */}
                         <nav className="hidden md:flex items-center space-x-1">
                             {navigation.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={[
-                                        "relative px-3 py-2 text-sm transition-colors text-zinc-300 hover:text-white after:content-[''] after:absolute after:left-3 after:right-3 after:bottom-1 after:h-[2px] after:rounded-full after:bg-[#e50914] after:origin-left after:scale-x-0 after:transition-transform after:duration-200 hover:after:scale-x-100",
-                                        isNavActive(item.href) ? 'text-white after:scale-x-100' : '',
-                                    ].join(' ')}
-                                >
-                                    {item.name}
-                                </Link>
+                                <span key={item.name} className="inline-flex items-center">
+                                    <Link
+                                        href={item.href}
+                                        className={[
+                                            "relative px-3 py-2 text-sm transition-colors text-zinc-300 hover:text-white after:content-[''] after:absolute after:left-3 after:right-3 after:bottom-1 after:h-[2px] after:rounded-full after:bg-[#e50914] after:origin-left after:scale-x-0 after:transition-transform after:duration-200 hover:after:scale-x-100",
+                                            isNavActive(item.href) ? 'text-white after:scale-x-100' : '',
+                                        ].join(' ')}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                    {item.name === 'TV Shows' && (
+                                        <Link
+                                            href="/vip"
+                                            className={[
+                                                'ml-1 rounded-md px-2 py-0.5 text-xs font-black uppercase tracking-wider transition-all',
+                                                'text-yellow-300 shadow-[0_0_12px_rgba(250,204,21,0.45)]',
+                                                'bg-yellow-400/15 ring-1 ring-yellow-400/50 hover:bg-yellow-400/25 hover:text-yellow-200 hover:shadow-[0_0_18px_rgba(250,204,21,0.6)]',
+                                                pathname === '/vip' ? 'bg-yellow-400/30 text-yellow-200 ring-yellow-300/70' : '',
+                                            ].join(' ')}
+                                        >
+                                            VIP
+                                        </Link>
+                                    )}
+                                </span>
                             ))}
                         </nav>
                     </div>
