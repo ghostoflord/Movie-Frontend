@@ -43,11 +43,13 @@ export type PublicMovieComment = {
     id: number;
     content: string;
     created_at: string;
+    likes_count?: number;
     user_id?: number;
     user?: {
         id?: number;
         name?: string;
-        avatar?: string;
+        /** URL đầy đủ từ CommentResource (Google hoặc /storage/...) */
+        avatar_url?: string | null;
     } | null;
     movie_id?: number;
     episode_id?: number | null;

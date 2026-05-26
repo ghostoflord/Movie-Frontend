@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { commentAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { resolveUserAvatarUrl } from '@/lib/avatar';
+import { parseComments } from '@/lib/parse-comments';
 import type { PublicMovieComment } from '@/types/public-movie-detail';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,25 +35,71 @@ function formatCommentTime(iso: string): string {
     }
 }
 
+function commentUserId(comment: PublicMovieComment): number | undefined {
+    return comment.user_id ?? comment.user?.id;
+}
+
 function authorLabel(comment: PublicMovieComment, currentUserId?: number): string {
-    if (currentUserId != null && comment.user_id === currentUserId) {
+    const uid = commentUserId(comment);
+    if (currentUserId != null && uid === currentUserId) {
         return 'Bạn';
     }
     const name = comment.user?.name?.trim();
     if (name) return name;
-    if (comment.user_id != null) {
-        return `Thành viên #${comment.user_id}`;
+    if (uid != null) {
+        return `Thành viên #${uid}`;
     }
     return 'Khách';
 }
 
-function commentAvatarSrc(comment: PublicMovieComment, me?: { id: number; avatar?: string | null }): string | null {
-    if (me?.id != null && comment.user_id === me.id) {
-        const a = (me.avatar ?? '').trim();
-        return a ? a : null;
+function commentAvatarSrc(
+    comment: PublicMovieComment,
+    me?: { id: number; avatar?: string | null },
+): string | null {
+    const fromUser = resolveUserAvatarUrl(comment.user?.avatar_url ?? undefined);
+    if (fromUser) return fromUser;
+
+    const uid = commentUserId(comment);
+    if (me?.id != null && uid === me.id) {
+        return resolveUserAvatarUrl(me.avatar);
     }
-    const a = (comment.user?.avatar ?? '').trim();
-    return a ? a : null;
+    return null;
+}
+
+function CommentAvatar({
+    comment,
+    currentUserId,
+    me,
+}: {
+    comment: PublicMovieComment;
+    currentUserId?: number;
+    me?: { id: number; avatar?: string | null };
+}) {
+    const src = commentAvatarSrc(comment, me);
+    const label = authorLabel(comment, currentUserId);
+
+    return (
+        <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-800">
+            {src ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={src}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                />
+            ) : (
+                <div
+                    className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-200"
+                    aria-hidden
+                >
+                    {nameInitials(label)}
+                </div>
+            )}
+        </div>
+    );
 }
 
 export function MovieCommentsSection({
@@ -67,10 +115,36 @@ export function MovieCommentsSection({
 }) {
     const { user, isAuthenticated } = useAuth();
     const [comments, setComments] = useState<PublicMovieComment[]>(initialComments);
+    const [loadingComments, setLoadingComments] = useState(false);
 
     useEffect(() => {
         setComments(initialComments);
     }, [initialComments]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setLoadingComments(true);
+            try {
+                const raw = await commentAPI.listByMovie(movieId);
+                const parsed = parseComments(raw);
+                if (!cancelled) {
+                    setComments(parsed);
+                }
+            } catch {
+                if (!cancelled) {
+                    setComments(initialComments);
+                }
+            } finally {
+                if (!cancelled) setLoadingComments(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ refetch khi đổi phim
+    }, [movieId]);
+
     const [content, setContent] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -96,14 +170,21 @@ export function MovieCommentsSection({
                 id: created.id,
                 content: created.content,
                 created_at: created.created_at,
-                user_id: created.user_id ?? user?.id,
-                user: user
+                likes_count: created.likes_count,
+                user_id: created.user_id ?? created.user?.id ?? user?.id,
+                user: created.user
                     ? {
-                          id: user.id,
-                          name: user.name,
-                          avatar: user.avatar,
+                          id: created.user.id,
+                          name: created.user.name,
+                          avatar_url: created.user.avatar_url ?? null,
                       }
-                    : null,
+                    : user
+                      ? {
+                            id: user.id,
+                            name: user.name,
+                            avatar_url: resolveUserAvatarUrl(user.avatar),
+                        }
+                      : null,
                 movie_id: created.movie_id ?? movieId,
                 episode_id: created.episode_id ?? null,
             };
@@ -121,12 +202,17 @@ export function MovieCommentsSection({
         }
     };
 
+    const me = user ? { id: user.id, avatar: user.avatar } : undefined;
+
     return (
         <section className="border-t border-white/10 pt-8">
             <h2 className="mb-4 flex items-center gap-2 text-base font-bold uppercase tracking-wide text-amber-300 md:text-lg">
                 <MessageSquare className="h-5 w-5" aria-hidden />
                 Bình luận
-                <span className="text-sm font-normal normal-case text-zinc-500">({comments.length})</span>
+                <span className="text-sm font-normal normal-case text-zinc-500">
+                    ({comments.length})
+                    {loadingComments ? ' · đang tải…' : ''}
+                </span>
             </h2>
 
             {isAuthenticated ? (
@@ -169,7 +255,9 @@ export function MovieCommentsSection({
             )}
 
             {comments.length === 0 ? (
-                <p className="text-sm text-zinc-500">Chưa có bình luận. Hãy là người đầu tiên!</p>
+                <p className="text-sm text-zinc-500">
+                    {loadingComments ? 'Đang tải bình luận…' : 'Chưa có bình luận. Hãy là người đầu tiên!'}
+                </p>
             ) : (
                 <ul className="space-y-4">
                     {comments.map((c) => (
@@ -179,23 +267,7 @@ export function MovieCommentsSection({
                         >
                             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
                                 <div className="flex min-w-0 items-center gap-2">
-                                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-800">
-                                        {commentAvatarSrc(c, user ? { id: user.id, avatar: user.avatar } : undefined) ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={commentAvatarSrc(c, user ? { id: user.id, avatar: user.avatar } : undefined) ?? ''}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                                loading="lazy"
-                                                decoding="async"
-                                                referrerPolicy="no-referrer"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-200">
-                                                {nameInitials(authorLabel(c, user?.id))}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <CommentAvatar comment={c} currentUserId={user?.id} me={me} />
                                     <span className="truncate font-semibold text-amber-300/90">
                                         {authorLabel(c, user?.id)}
                                     </span>

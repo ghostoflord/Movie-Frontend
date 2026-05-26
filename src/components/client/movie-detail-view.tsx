@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { PublicMovieComment, PublicMovieDetail, PublicMovieEpisode } from '@/types/public-movie-detail';
+import type { PublicMovieDetail, PublicMovieEpisode } from '@/types/public-movie-detail';
+import { parseComments } from '@/lib/parse-comments';
 import { MovieCommentsSection } from '@/components/client/movie-comments-section';
 import type { PublicMovieListItem } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
@@ -56,62 +57,6 @@ function parseListPayload(data: unknown): PublicMovieListItem[] {
         if (Array.isArray(o.movies)) return o.movies as PublicMovieListItem[];
     }
     return [];
-}
-
-function parseComments(raw: unknown): PublicMovieComment[] {
-    const unwrap = (v: unknown): unknown => {
-        if (!v || typeof v !== 'object') return v;
-        const o = v as Record<string, unknown>;
-        if (Array.isArray(o.data)) return o.data;
-        if (o.data && typeof o.data === 'object') {
-            const inner = o.data as Record<string, unknown>;
-            if (Array.isArray(inner.data)) return inner.data;
-        }
-        return v;
-    };
-
-    const v = unwrap(raw);
-    if (!Array.isArray(v)) return [];
-
-    return v
-        .map((c): PublicMovieComment | null => {
-            if (!c || typeof c !== 'object') return null;
-            const o = c as Record<string, unknown>;
-            const id = Number(o.id);
-            const content = typeof o.content === 'string' ? o.content : String(o.content ?? '');
-            const created_at = typeof o.created_at === 'string' ? o.created_at : String(o.created_at ?? '');
-            if (!Number.isFinite(id) || !content) return null;
-
-            const rawUser = o.user;
-            const user =
-                rawUser && typeof rawUser === 'object'
-                    ? {
-                          id:
-                              (rawUser as Record<string, unknown>).id != null
-                                  ? Number((rawUser as Record<string, unknown>).id)
-                                  : undefined,
-                          name:
-                              typeof (rawUser as Record<string, unknown>).name === 'string'
-                                  ? String((rawUser as Record<string, unknown>).name)
-                                  : undefined,
-                          avatar:
-                              typeof (rawUser as Record<string, unknown>).avatar === 'string'
-                                  ? String((rawUser as Record<string, unknown>).avatar)
-                                  : undefined,
-                      }
-                    : null;
-            return {
-                id,
-                content,
-                created_at,
-                user_id: o.user_id != null ? Number(o.user_id) : undefined,
-                user,
-                movie_id: o.movie_id != null ? Number(o.movie_id) : undefined,
-                episode_id: o.episode_id == null ? null : Number(o.episode_id),
-            };
-        })
-        .filter((x): x is PublicMovieComment => Boolean(x))
-        .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
 }
 
 function formatCategories(cats: string[] | null | undefined): string[] {

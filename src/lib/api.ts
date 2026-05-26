@@ -417,16 +417,28 @@ export type VnpayCallbackResult = {
     };
 };
 
+export type CommentApiItem = {
+    id: number;
+    content: string;
+    created_at: string;
+    likes_count?: number;
+    user_id?: number;
+    user?: {
+        id?: number;
+        name?: string;
+        avatar_url?: string | null;
+    } | null;
+    movie_id?: number;
+    episode_id?: number | null;
+};
+
 export const commentAPI = {
+    listByMovie: (movieId: string | number) =>
+        apiService.get<unknown>(`/movies/${movieId}/comments`),
+    list: (params?: { movie_id?: number; episode_id?: number | null }) =>
+        apiService.get<unknown>('/comments', params),
     create: (data: { movie_id: number; episode_id?: number | null; content: string }) =>
-        apiService.post<{
-            id: number;
-            content: string;
-            created_at: string;
-            user_id?: number;
-            movie_id?: number;
-            episode_id?: number | null;
-        }>('/comments', data),
+        apiService.post<CommentApiItem>('/comments', data),
 };
 
 export const vnpayAPI = {
