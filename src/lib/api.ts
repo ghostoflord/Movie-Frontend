@@ -393,4 +393,24 @@ export const crawlAPI = {
     crawlMovies: (data: { pages?: number }) => apiService.post('/admin/crawl-movies', data),
 };
 
+export type VnpayPlanId = 'monthly' | 'yearly';
+
+export type VnpayPlanInfo = {
+    amount: number;
+    days: number;
+    label: string;
+};
+
+export type VnpayCreatePaymentResult = {
+    payment_url: string;
+    order_id: string;
+};
+
+export const vnpayAPI = {
+    getPlans: () =>
+        apiService.get<{ data: Record<VnpayPlanId, VnpayPlanInfo> }>('/vnpay/plans'),
+    createPayment: (plan: VnpayPlanId) =>
+        apiService.post<{ data: VnpayCreatePaymentResult }>('/vnpay/create-payment', { plan }),
+};
+
 export default apiService;

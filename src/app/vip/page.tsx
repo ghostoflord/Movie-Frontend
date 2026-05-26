@@ -1,30 +1,118 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Crown, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Check, Crown, Loader2, Sparkles } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { vnpayAPI, type VnpayPlanId } from '@/lib/api';
+import { toUserErrorMessage } from '@/lib/api-error';
+import { unwrapData } from '@/lib/unwrap-api';
 
-const PLANS = [
+type BillingPlan = {
+    id: VnpayPlanId;
+    title: string;
+    periodLabel: string;
+    amount: number;
+    label: string;
+    perks: string[];
+    featured?: boolean;
+};
+
+const DEFAULT_PLANS: BillingPlan[] = [
     {
-        id: 'basic',
-        amount: 75_000,
-        label: '75.000',
-        title: 'Gói VIP Cơ bản',
+        id: 'monthly',
+        title: 'VIP 1 tháng',
+        periodLabel: 'Tháng',
+        amount: 79_000,
+        label: '79.000',
         perks: ['Xem không quảng cáo', 'Chất lượng HD', 'Ưu tiên server'],
     },
     {
-        id: 'premium',
-        amount: 200_000,
-        label: '200.000',
-        title: 'Gói VIP Cao cấp',
-        perks: ['Mọi quyền lợi gói cơ bản', '4K khi có sẵn', 'Phim mới sớm nhất', 'Hỗ trợ ưu tiên'],
+        id: 'yearly',
+        title: 'VIP 1 năm',
+        periodLabel: 'Năm',
+        amount: 790_000,
+        label: '790.000',
+        perks: ['Mọi quyền lợi gói tháng', 'Tiết kiệm hơn gói tháng', '4K khi có sẵn', 'Hỗ trợ ưu tiên'],
         featured: true,
     },
-] as const;
+];
+
+function formatVnd(amount: number) {
+    return amount.toLocaleString('vi-VN');
+}
 
 export default function VipPage() {
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const router = useRouter();
+    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const [plans, setPlans] = useState<BillingPlan[]>(DEFAULT_PLANS);
+    const [selectedId, setSelectedId] = useState<VnpayPlanId | null>(null);
+    const [paying, setPaying] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const selected = PLANS.find((p) => p.id === selectedId);
+    useEffect(() => {
+        let cancelled = false;
+        void vnpayAPI
+            .getPlans()
+            .then((res) => {
+                if (cancelled) return;
+                const data = unwrapData<Record<VnpayPlanId, { amount: number; days: number; label: string }>>(
+                    res as { data: Record<VnpayPlanId, { amount: number; days: number; label: string }> },
+                );
+                if (!data) return;
+                setPlans((prev) =>
+                    prev.map((p) => {
+                        const fromApi = data[p.id];
+                        if (!fromApi) return p;
+                        return {
+                            ...p,
+                            title: fromApi.label || p.title,
+                            amount: fromApi.amount,
+                            label: formatVnd(fromApi.amount),
+                        };
+                    }),
+                );
+            })
+            .catch(() => {
+                /* giữ giá mặc định */
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const selected = plans.find((p) => p.id === selectedId);
+
+    const handlePay = useCallback(async () => {
+        if (!selectedId) return;
+        setError(null);
+
+        if (!isAuthenticated) {
+            router.push(`/login?next=${encodeURIComponent('/vip')}`);
+            return;
+        }
+
+        setPaying(true);
+        try {
+            const res = await vnpayAPI.createPayment(selectedId);
+            const payload = unwrapData<{ payment_url: string; order_id: string }>(res);
+            const paymentUrl = payload?.payment_url;
+            if (!paymentUrl) {
+                setError('Không nhận được link thanh toán. Vui lòng thử lại.');
+                return;
+            }
+            window.location.href = paymentUrl;
+        } catch (err) {
+            setError(
+                toUserErrorMessage((err as { response?: { data?: unknown } })?.response?.data ?? err, {
+                    fallback: 'Không tạo được thanh toán. Vui lòng đăng nhập và thử lại.',
+                }),
+            );
+        } finally {
+            setPaying(false);
+        }
+    }, [isAuthenticated, router, selectedId]);
 
     return (
         <div className="min-h-screen bg-[#0b0b0f] text-white">
@@ -37,18 +125,21 @@ export default function VipPage() {
                         Nâng cấp <span className="text-yellow-300">VIP</span>
                     </h1>
                     <p className="mt-2 text-sm text-zinc-400 md:text-base">
-                        Chọn gói phù hợp — thanh toán sẽ được bổ sung sau.
+                        Chọn gói theo tháng hoặc năm — thanh toán qua VNPay.
                     </p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
-                    {PLANS.map((plan) => {
+                    {plans.map((plan) => {
                         const isSelected = selectedId === plan.id;
                         return (
                             <button
                                 key={plan.id}
                                 type="button"
-                                onClick={() => setSelectedId(plan.id)}
+                                onClick={() => {
+                                    setSelectedId(plan.id);
+                                    setError(null);
+                                }}
                                 className={[
                                     'group relative w-full rounded-2xl border p-6 text-left transition-all duration-200',
                                     'bg-[#12121a] hover:border-yellow-400/40',
@@ -62,14 +153,15 @@ export default function VipPage() {
                             >
                                 {plan.featured && (
                                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-yellow-400 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                                        Phổ biến
+                                        Tiết kiệm
                                     </span>
                                 )}
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-yellow-400/90">
-                                            {plan.title}
+                                            {plan.periodLabel}
                                         </p>
+                                        <p className="mt-1 text-lg font-bold text-white">{plan.title}</p>
                                         <p className="mt-2 flex items-baseline gap-1">
                                             <span className="text-3xl font-black text-white">{plan.label}</span>
                                             <span className="text-lg font-semibold text-zinc-400">đ</span>
@@ -108,16 +200,47 @@ export default function VipPage() {
                 </div>
 
                 {selected && (
-                    <div className="mt-8 rounded-xl border border-yellow-400/30 bg-yellow-400/5 px-5 py-4 text-center">
-                        <p className="text-sm text-zinc-300">
+                    <div className="mt-8 space-y-4 rounded-xl border border-yellow-400/30 bg-yellow-400/5 px-5 py-5">
+                        <p className="text-center text-sm text-zinc-300">
                             Bạn đã chọn:{' '}
                             <span className="font-semibold text-yellow-300">
                                 {selected.title} — {selected.label}đ
                             </span>
                         </p>
-                        <p className="mt-1 text-xs text-zinc-500">
-                            Tạm thời chỉ lưu lựa chọn trên trang. Bước thanh toán sẽ cập nhật sau.
-                        </p>
+
+                        {!authLoading && !isAuthenticated ? (
+                            <p className="text-center text-xs text-amber-300/90">
+                                Bạn cần{' '}
+                                <Link href="/login" className="font-semibold underline hover:text-amber-200">
+                                    đăng nhập
+                                </Link>{' '}
+                                để thanh toán.
+                            </p>
+                        ) : null}
+
+                        {error ? (
+                            <p className="text-center text-sm text-red-300/90" role="alert">
+                                {error}
+                            </p>
+                        ) : null}
+
+                        <div className="flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => void handlePay()}
+                                disabled={paying || authLoading}
+                                className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold uppercase tracking-wide text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {paying ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                        Đang chuyển VNPay…
+                                    </>
+                                ) : (
+                                    'Thanh toán VNPay'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
