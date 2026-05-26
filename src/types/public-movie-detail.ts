@@ -36,5 +36,14 @@ export type PublicMovieDetail = {
     created_at: string;
     updated_at: string;
     episodes: PublicMovieEpisode[];
-    comments?: unknown[];
+    comments?: PublicMovieComment[];
+};
+
+export type PublicMovieComment = {
+    id: number;
+    content: string;
+    created_at: string;
+    user_id?: number;
+    movie_id?: number;
+    episode_id?: number | null;
 };

@@ -49,7 +49,6 @@ function CategoryMovieCard({ movie }: { movie: PublicMovieListItem }) {
     const poster = movie.poster_url || movie.thumb_url;
     const q = (movie.quality || 'HD').trim();
     const ep = episodeTopRight(movie);
-    const year = movie.year != null ? String(movie.year) : '';
 
     return (
         <Link
@@ -84,10 +83,9 @@ function CategoryMovieCard({ movie }: { movie: PublicMovieListItem }) {
                 ) : null}
             </div>
             <div className="flex flex-1 flex-col border-t border-white/5 px-2 pb-2 pt-2">
-                <h3 className="line-clamp-2 min-h-[2.5rem] text-[13px] font-bold leading-tight text-white">{movie.name}</h3>
-                <p className="mt-1 line-clamp-1 text-[11px] text-zinc-500">
-                    {[movie.origin_name, year].filter(Boolean).join(' · ')}
-                </p>
+                <h3 className="line-clamp-2 min-h-[2.5rem] text-[13px] font-bold leading-tight text-white">
+                    {movie.name}
+                </h3>
                 <span className="mt-auto flex w-full justify-center rounded-md bg-sky-600 py-1.5 text-center text-xs font-semibold text-white transition group-hover:bg-sky-500">
                     Xem phim
                 </span>

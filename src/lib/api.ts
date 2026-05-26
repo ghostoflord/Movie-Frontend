@@ -417,6 +417,18 @@ export type VnpayCallbackResult = {
     };
 };
 
+export const commentAPI = {
+    create: (data: { movie_id: number; episode_id?: number | null; content: string }) =>
+        apiService.post<{
+            id: number;
+            content: string;
+            created_at: string;
+            user_id?: number;
+            movie_id?: number;
+            episode_id?: number | null;
+        }>('/comments', data),
+};
+
 export const vnpayAPI = {
     getPlans: () =>
         apiService.get<{ data: Record<VnpayPlanId, VnpayPlanInfo> }>('/vnpay/plans'),
