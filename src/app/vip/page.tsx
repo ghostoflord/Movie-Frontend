@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { vnpayAPI, type VnpayPlanId } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
 import { unwrapData } from '@/lib/unwrap-api';
+import { canUseContinueWatching } from '@/lib/roles';
 
 type BillingPlan = {
     id: VnpayPlanId;
@@ -45,7 +46,7 @@ function formatVnd(amount: number) {
 
 export default function VipPage() {
     const router = useRouter();
-    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const [plans, setPlans] = useState<BillingPlan[]>(DEFAULT_PLANS);
     const [selectedId, setSelectedId] = useState<VnpayPlanId | null>(null);
     const [paying, setPaying] = useState(false);
@@ -83,10 +84,16 @@ export default function VipPage() {
     }, []);
 
     const selected = plans.find((p) => p.id === selectedId);
+    const isAlreadyVipOrAdmin = Boolean(user && canUseContinueWatching(user.role));
 
     const handlePay = useCallback(async () => {
         if (!selectedId) return;
         setError(null);
+
+        if (isAlreadyVipOrAdmin) {
+            setError('Tài khoản của bạn đã có quyền VIP/Admin nên không cần mua thêm.');
+            return;
+        }
 
         if (!isAuthenticated) {
             router.push(`/login?next=${encodeURIComponent('/vip')}`);
@@ -112,7 +119,7 @@ export default function VipPage() {
         } finally {
             setPaying(false);
         }
-    }, [isAuthenticated, router, selectedId]);
+    }, [isAuthenticated, isAlreadyVipOrAdmin, router, selectedId]);
 
     return (
         <div className="min-h-screen bg-[#0b0b0f] text-white">
@@ -127,6 +134,11 @@ export default function VipPage() {
                     <p className="mt-2 text-sm text-zinc-400 md:text-base">
                         Chọn gói theo tháng hoặc năm — thanh toán qua VNPay.
                     </p>
+                    {isAlreadyVipOrAdmin ? (
+                        <p className="mx-auto mt-3 max-w-xl rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                            Tài khoản của bạn đã có quyền <span className="font-semibold">VIP/Admin</span>. Nút thanh toán đã được tắt.
+                        </p>
+                    ) : null}
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
@@ -228,7 +240,7 @@ export default function VipPage() {
                             <button
                                 type="button"
                                 onClick={() => void handlePay()}
-                                disabled={paying || authLoading}
+                                disabled={paying || authLoading || isAlreadyVipOrAdmin}
                                 className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 text-sm font-bold uppercase tracking-wide text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {paying ? (
@@ -237,7 +249,7 @@ export default function VipPage() {
                                         Đang chuyển VNPay…
                                     </>
                                 ) : (
-                                    'Thanh toán VNPay'
+                                    isAlreadyVipOrAdmin ? 'Đã có VIP' : 'Thanh toán VNPay'
                                 )}
                             </button>
                         </div>

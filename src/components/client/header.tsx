@@ -1,18 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
 import { Search, User, ChevronDown, LogOut, Shield, Heart, Clock } from 'lucide-react';
 import { canUseContinueWatching, isAdminRole } from '@/lib/roles';
+import type { PublicMovieListItem } from '@/lib/movies-public';
+import { parseMoviesListResponse } from '@/lib/movies-public';
 
 export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const { user, logout } = useAuth();
     const pathname = usePathname();
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchResults, setSearchResults] = useState<PublicMovieListItem[]>([]);
+    const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -21,6 +31,53 @@ export default function Header() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            const el = searchBoxRef.current;
+            if (!el) return;
+            if (e.target instanceof Node && !el.contains(e.target)) {
+                setSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onDocClick);
+        return () => document.removeEventListener('mousedown', onDocClick);
+    }, []);
+
+    const normalizedQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
+
+    useEffect(() => {
+        const q = normalizedQuery;
+        if (q.length < 2) {
+            setSearchResults([]);
+            setSearchLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setSearchLoading(true);
+        const t = setTimeout(() => {
+            (async () => {
+                try {
+                    const url = `${API_URL}/movies?page=1&per_page=8&name=${encodeURIComponent(q)}`;
+                    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+                    const json = await res.json();
+                    if (cancelled) return;
+                    const { list } = parseMoviesListResponse(json);
+                    setSearchResults(list);
+                } catch {
+                    if (!cancelled) setSearchResults([]);
+                } finally {
+                    if (!cancelled) setSearchLoading(false);
+                }
+            })();
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(t);
+        };
+    }, [API_URL, normalizedQuery]);
 
     const navigation = [
         { name: 'Phim Bộ', href: '/phim-bo' },
@@ -92,13 +149,66 @@ export default function Header() {
                     <div className="flex items-center space-x-4">
                         {/* Search */}
                         <div className="hidden md:flex items-center">
-                            <div className="relative">
+                            <div className="relative" ref={searchBoxRef}>
                                 <input
                                     type="text"
                                     placeholder="Tìm kiếm phim..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setSearchOpen(true);
+                                    }}
+                                    onFocus={() => setSearchOpen(true)}
                                     className="w-64 rounded-full border border-zinc-600 bg-zinc-900/80 py-2 pl-10 pr-4 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-[#e50914] focus:outline-none"
                                 />
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={17} />
+                                {searchOpen && normalizedQuery.length >= 2 ? (
+                                    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-white/10 bg-[#0d0d12] shadow-2xl shadow-black/60">
+                                        <div className="px-3 py-2 text-[11px] text-zinc-500">
+                                            {searchLoading
+                                                ? 'Đang tìm…'
+                                                : searchResults.length
+                                                  ? `Kết quả cho “${normalizedQuery}”`
+                                                  : 'Không tìm thấy'}
+                                        </div>
+                                        {searchResults.length ? (
+                                            <ul className="max-h-80 overflow-auto">
+                                                {searchResults.map((m) => (
+                                                    <li key={m.id}>
+                                                        <Link
+                                                            href={`/phim/${m.id}`}
+                                                            onClick={() => setSearchOpen(false)}
+                                                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5"
+                                                        >
+                                                            <div className="h-10 w-8 shrink-0 overflow-hidden rounded bg-zinc-900">
+                                                                {m.thumb_url || m.poster_url ? (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                                    <img
+                                                                        src={(m.thumb_url || m.poster_url) as string}
+                                                                        alt=""
+                                                                        className="h-full w-full object-cover"
+                                                                        loading="lazy"
+                                                                        referrerPolicy="no-referrer"
+                                                                    />
+                                                                ) : null}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="truncate text-sm font-semibold text-white">
+                                                                    {m.name}
+                                                                </p>
+                                                                <p className="truncate text-xs text-zinc-500">
+                                                                    {[m.origin_name, m.year ? String(m.year) : null]
+                                                                        .filter(Boolean)
+                                                                        .join(' · ') || '—'}
+                                                                </p>
+                                                            </div>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : null}
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
 
