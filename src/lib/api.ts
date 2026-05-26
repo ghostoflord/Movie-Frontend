@@ -406,11 +406,25 @@ export type VnpayCreatePaymentResult = {
     order_id: string;
 };
 
+export type VnpayCallbackResult = {
+    status: 'success' | 'failed' | string;
+    message: string;
+    payment?: {
+        order_id?: string;
+        plan?: string;
+        amount?: number;
+        status?: string;
+    };
+};
+
 export const vnpayAPI = {
     getPlans: () =>
         apiService.get<{ data: Record<VnpayPlanId, VnpayPlanInfo> }>('/vnpay/plans'),
     createPayment: (plan: VnpayPlanId) =>
         apiService.post<{ data: VnpayCreatePaymentResult }>('/vnpay/create-payment', { plan }),
+    /** Xác nhận kết quả khi URL còn đủ tham số VNPay (vnp_TxnRef, vnp_SecureHash, …). */
+    callback: (params: Record<string, string>) =>
+        apiService.get<{ data: VnpayCallbackResult }>('/vnpay/callback', params),
 };
 
 export default apiService;
