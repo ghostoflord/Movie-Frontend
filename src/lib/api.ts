@@ -3,7 +3,9 @@ import axios, { AxiosError } from 'axios';
 import { LoginCredentials, User, RegisterData, Movie } from '@/types/auth';
 import type { AdminEpisode, EpisodesListResponse } from '@/types/episode';
 import { useAuthStore } from '@/hooks/useAuthStore';
-import type { Actor, Category, Rating, Server, WatchHistoryCreatePayload, RecommendationMovie, AdminUserItem } from '@/types/admin-entities';
+import type { Actor, Category, Rating, Server, RecommendationMovie, AdminUserItem } from '@/types/admin-entities';
+import type { WatchHistoryItem, WatchHistorySavePayload } from '@/types/watch-history';
+import { parseWatchHistoryItem, parseWatchHistoryList } from '@/lib/parse-watch-history';
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
@@ -259,8 +261,53 @@ export const ratingAPI = {
     delete: (id: string | number) => apiService.delete(`/ratings/${id}`),
 };
 
+async function getWatchHistoryOrNull(url: string): Promise<WatchHistoryItem | null> {
+    try {
+        const raw = await apiService.get<unknown>(url);
+        return parseWatchHistoryItem(raw);
+    } catch (e) {
+        if (e instanceof AxiosError && e.response?.status === 404) return null;
+        throw e;
+    }
+}
+
 export const watchHistoryAPI = {
-    saveProgress: (data: WatchHistoryCreatePayload) => apiService.post('/watch-history', data),
+    saveProgress: (data: WatchHistorySavePayload) =>
+        apiService.post('/watch-history', {
+            episode_id: data.episode_id,
+            current_time: data.current_time,
+            ...(data.duration_watched != null && data.duration_watched >= 0
+                ? { duration_watched: data.duration_watched }
+                : {}),
+        }),
+    /** Danh sách «Tiếp tục xem» — mỗi phim 1 dòng, có watch_url + resume_at */
+    listContinue: (params?: { per_page?: number; page?: number }) =>
+        apiService
+            .get<unknown>('/watch-history/continue', {
+                per_page: params?.per_page ?? 20,
+                page: params?.page ?? 1,
+            })
+            .then(parseWatchHistoryList),
+    /** @deprecated Dùng listContinue */
+    listGrouped: (params?: { per_page?: number; page?: number }) =>
+        apiService
+            .get<unknown>('/watch-history/continue', {
+                per_page: params?.per_page ?? 20,
+                page: params?.page ?? 1,
+            })
+            .then(parseWatchHistoryList),
+    listByMovie: (movieId: number | string) =>
+        apiService.get<unknown>('/watch-history', { movie_id: movieId }).then(parseWatchHistoryList),
+    getByEpisode: (episodeId: number | string) =>
+        getWatchHistoryOrNull(`/watch-history/episode/${episodeId}`),
+    getByMovie: (movieId: number | string) => getWatchHistoryOrNull(`/watch-history/movie/${movieId}`),
+    get: (id: number | string) =>
+        apiService.get<unknown>(`/watch-history/${id}`).then((r) => parseWatchHistoryItem(r)),
+    update: (id: number | string, data: { current_time?: number; duration_watched?: number }) =>
+        apiService.put(`/watch-history/${id}`, data),
+    delete: (id: number | string) => apiService.delete(`/watch-history/${id}`),
+    deleteByMovie: (movieId: number | string) => apiService.delete(`/watch-history/movie/${movieId}`),
+    clearAll: () => apiService.delete('/watch-history/clear'),
 };
 
 export const recommendationsAPI = {

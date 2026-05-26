@@ -36,9 +36,11 @@ export type Rating = {
     updated_at?: string;
 };
 
+/** @deprecated Dùng WatchHistorySavePayload từ @/types/watch-history */
 export type WatchHistoryCreatePayload = {
     episode_id: number;
-    duration_watched?: number | null;
+    current_time?: number;
+    duration_watched?: number;
 };
 
 export type RecommendationMovie = {

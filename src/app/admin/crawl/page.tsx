@@ -163,7 +163,6 @@ export default function AdminCrawlPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Cào phim (Crawler)"
-                subtitle="Cào theo thể loại (genre) trong DB — slug như bi-an, chinh-kich, hanh-dong…"
             />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -196,10 +195,6 @@ export default function AdminCrawlPage() {
                                             </option>
                                         ))}
                                     </select>
-                                    <p className="mt-1.5 text-xs text-zinc-500">
-                                        Slug gửi lên crawler:{' '}
-                                        <span className="font-mono text-zinc-300">{category || '—'}</span>
-                                    </p>
                                 </>
                             )}
                             {categoriesError ? (

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
-import { Search, User, ChevronDown, LogOut, Shield, Heart } from 'lucide-react';
+import { Search, User, ChevronDown, LogOut, Shield, Heart, Clock } from 'lucide-react';
 import { isAdminRole } from '@/lib/roles';
 
 export default function Header() {
@@ -181,6 +181,7 @@ export default function Header() {
                     <div className="p-2">
                         {[
                             { href: '/profile', icon: <User size={14} />, label: 'Hồ sơ của tôi' },
+                            { href: '/continue', icon: <Clock size={14} />, label: 'Tiếp tục xem' },
                             { href: '/favorites', icon: <Heart size={14} />, label: 'Phim yêu thích' },
                             ...(isAdminRole(user.role) ? [{ href: '/admin', icon: <Shield size={14} />, label: 'Quản trị viên' }] : []),
                         ].map((item) => (

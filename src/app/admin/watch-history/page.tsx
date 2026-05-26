@@ -7,6 +7,7 @@ import { AdminPageHeader } from '@/components/admin/admin-shell';
 
 export default function AdminWatchHistoryPage() {
     const [episodeId, setEpisodeId] = useState('');
+    const [currentTime, setCurrentTime] = useState('0');
     const [duration, setDuration] = useState('');
     const [saving, setSaving] = useState(false);
     const [result, setResult] = useState<string | null>(null);
@@ -18,12 +19,13 @@ export default function AdminWatchHistoryPage() {
         try {
             await watchHistoryAPI.saveProgress({
                 episode_id: Number(episodeId),
-                duration_watched: duration ? Number(duration) : null,
+                current_time: Number(currentTime) || 0,
+                ...(duration.trim() ? { duration_watched: Number(duration) } : {}),
             });
             setResult('Đã lưu tiến độ xem.');
         } catch (err) {
             setResult(
-                toUserErrorMessage((err as any)?.response?.data ?? (err as any)?.message, {
+                toUserErrorMessage((err as { response?: { data?: unknown } })?.response?.data ?? err, {
                     fallback: 'Không lưu được tiến độ xem. Vui lòng thử lại.',
                 }),
             );
@@ -36,10 +38,10 @@ export default function AdminWatchHistoryPage() {
         <div className="space-y-6">
             <AdminPageHeader
                 title="Watch history"
-                subtitle="Lưu tiến độ xem theo episode."
+                subtitle="Test POST /api/watch-history (upsert theo user + episode)."
             />
 
-            <form onSubmit={onSubmit} className="max-w-xl rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
+            <form onSubmit={onSubmit} className="max-w-xl space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
                 <div>
                     <label className="mb-1 block text-sm text-zinc-400">Episode ID *</label>
                     <input
@@ -51,11 +53,22 @@ export default function AdminWatchHistoryPage() {
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-sm text-zinc-400">Duration watched (seconds)</label>
+                    <label className="mb-1 block text-sm text-zinc-400">Current time (giây) *</label>
+                    <input
+                        value={currentTime}
+                        onChange={(e) => setCurrentTime(e.target.value)}
+                        required
+                        inputMode="numeric"
+                        className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
+                    />
+                </div>
+                <div>
+                    <label className="mb-1 block text-sm text-zinc-400">Duration watched (giây, tùy chọn)</label>
                     <input
                         value={duration}
                         onChange={(e) => setDuration(e.target.value)}
                         inputMode="numeric"
+                        placeholder="Bỏ trống = BE mặc định 0"
                         className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
                     />
                 </div>
@@ -73,4 +86,3 @@ export default function AdminWatchHistoryPage() {
         </div>
     );
 }
-

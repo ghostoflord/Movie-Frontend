@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Heart, Mail, Shield, Sparkles, User } from 'lucide-react';
+import { Calendar, Clock, Heart, Mail, Shield, Sparkles, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { recommendationsAPI } from '@/lib/api';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
@@ -183,6 +183,13 @@ export default function ProfilePage() {
                     </div>
 
                     <nav className="rounded-2xl border border-white/[0.08] bg-[#0d0d12] p-2">
+                        <Link
+                            href="/continue"
+                            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"
+                        >
+                            <Clock className="h-4 w-4 text-amber-400/80" aria-hidden />
+                            Tiếp tục xem
+                        </Link>
                         <Link
                             href="/favorites"
                             className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"

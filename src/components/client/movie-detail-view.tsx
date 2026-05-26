@@ -10,9 +10,12 @@ import type { PublicMovieListItem } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
 import { Heart } from 'lucide-react';
 import { toUserErrorMessage } from '@/lib/api-error';
-import { favoritesAPI, ratingAPI } from '@/lib/api';
+import { favoritesAPI, ratingAPI, watchHistoryAPI } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useWatchProgress } from '@/hooks/useWatchProgress';
+import { formatWatchTime } from '@/lib/format-watch-time';
+import { watchHistoryResumeHref } from '@/lib/watch-resume-url';
 
 function PlayIcon({ className }: { className?: string }) {
     return (
@@ -237,6 +240,23 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     const [ratingNotice, setRatingNotice] = useState<string | null>(null);
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoriteLoading, setFavoriteLoading] = useState(false);
+    const [hasMovieResume, setHasMovieResume] = useState(false);
+    const [continueLoading, setContinueLoading] = useState(false);
+
+    const urlResumeSeconds = useMemo(() => {
+        const t = searchParams.get('t');
+        if (!t) return null;
+        const n = Number(t);
+        return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+    }, [searchParams]);
+
+    const episodeIdForProgress =
+        watchMode && selectedEpisode ? selectedEpisode.id : null;
+    const { resumeSeconds, dismissResume } = useWatchProgress({
+        episodeId: episodeIdForProgress,
+        enabled: watchMode && isAuthenticated,
+        urlResumeSeconds,
+    });
 
     const fetchMovie = useCallback(async () => {
         setLoading(true);
@@ -271,6 +291,35 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     useEffect(() => {
         fetchMovie();
     }, [fetchMovie]);
+
+    useEffect(() => {
+        if (!movie?.episodes?.length) return;
+        const epParam = searchParams.get('episode');
+        if (!epParam) return;
+        const ep = movie.episodes.find((e) => e.id === Number(epParam));
+        if (ep) setSelectedEpisode(ep);
+    }, [movie, searchParams]);
+
+    useEffect(() => {
+        if (!token || !movie?.id) {
+            setHasMovieResume(false);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const item = await watchHistoryAPI.getByMovie(movie.id);
+                if (!cancelled) {
+                    setHasMovieResume(Boolean(item?.episode?.id));
+                }
+            } catch {
+                if (!cancelled) setHasMovieResume(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [token, movie?.id]);
 
     useEffect(() => {
         let cancelled = false;
@@ -425,8 +474,32 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
 
     const comments = useMemo(() => parseComments(movie?.comments), [movie?.comments]);
 
-    const openWatch = () => {
-        router.push(`/phim/${movieId}?watch=1`);
+    const openWatch = (episodeId?: number, resumeSeconds?: number) => {
+        const params = new URLSearchParams({ watch: '1' });
+        if (episodeId) params.set('episode', String(episodeId));
+        const t = resumeSeconds ?? 0;
+        if (t > 0) params.set('t', String(Math.floor(t)));
+        router.push(`/phim/${movieId}?${params.toString()}`);
+    };
+
+    const handleContinueWatch = async () => {
+        if (!isAuthenticated) {
+            router.push('/login');
+            return;
+        }
+        setContinueLoading(true);
+        try {
+            const item = await watchHistoryAPI.getByMovie(Number(movieId));
+            if (item?.episode?.id || item?.movie?.id) {
+                router.push(watchHistoryResumeHref(item));
+                return;
+            }
+            openWatch();
+        } catch {
+            openWatch();
+        } finally {
+            setContinueLoading(false);
+        }
     };
 
     if (loading) {
@@ -503,10 +576,11 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-4 flex gap-2">
+                                <div className="mt-4 flex flex-col gap-2">
+                                    <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={openWatch}
+                                        onClick={() => openWatch()}
                                         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#e50914] py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#ff0f1a]"
                                     >
                                         <PlayIcon className="h-4 w-4" />
@@ -538,6 +612,17 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                             aria-hidden
                                         />
                                     </button>
+                                    </div>
+                                    {hasMovieResume && isAuthenticated ? (
+                                        <button
+                                            type="button"
+                                            disabled={continueLoading}
+                                            onClick={() => void handleContinueWatch()}
+                                            className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-60"
+                                        >
+                                            {continueLoading ? 'Đang tải…' : '▶ Xem tiếp'}
+                                        </button>
+                                    ) : null}
                                 </div>
                                 {!canFavorite ? (
                                     <Link
@@ -671,6 +756,25 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                 )}
 
                                 <div id="watch-player" className="mt-8 scroll-mt-28">
+                                    {resumeSeconds != null && resumeSeconds > 5 ? (
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
+                                            <span>
+                                                Đã xem đến{' '}
+                                                <strong className="text-amber-200">
+                                                    {formatWatchTime(resumeSeconds)}
+                                                </strong>
+                                                {' '}
+                                                — tiến độ lưu tự động khi xem.
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={dismissResume}
+                                                className="shrink-0 text-xs text-amber-300/90 hover:text-white"
+                                            >
+                                                Đóng
+                                            </button>
+                                        </div>
+                                    ) : null}
                                     <div className="aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-black">
                                         {selectedEpisode?.embed_url ? (
                                             <iframe
