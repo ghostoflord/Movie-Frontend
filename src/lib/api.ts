@@ -263,6 +263,61 @@ export const recommendationsAPI = {
     get: () => apiService.get<unknown>('/recommendations').then(unwrapList<RecommendationMovie>),
 };
 
+function favoriteRecordToMovie(item: unknown): RecommendationMovie | null {
+    if (!item || typeof item !== 'object') return null;
+    const row = item as Record<string, unknown>;
+    const raw = row.movie && typeof row.movie === 'object' ? row.movie : row;
+    if (!raw || typeof raw !== 'object') return null;
+    const m = raw as Record<string, unknown>;
+    const id = Number(m.id ?? row.movie_id);
+    if (!id || Number.isNaN(id)) return null;
+    const name = String(m.name ?? m.title ?? '');
+    if (!name) return null;
+    return {
+        id,
+        name,
+        origin_name: m.origin_name != null ? String(m.origin_name) : undefined,
+        slug: m.slug != null ? String(m.slug) : undefined,
+        thumb_url: m.thumb_url != null ? String(m.thumb_url) : undefined,
+        poster_url: m.poster_url != null ? String(m.poster_url) : undefined,
+        year: (m.year as RecommendationMovie['year']) ?? undefined,
+        quality: m.quality != null ? String(m.quality) : undefined,
+        episode_current: m.episode_current != null ? String(m.episode_current) : undefined,
+        episode_total: m.episode_total != null ? String(m.episode_total) : undefined,
+    };
+}
+
+/** Danh sách phim yêu thích của user đang đăng nhập (Bearer token). */
+export const favoritesAPI = {
+    list: () =>
+        apiService.get<unknown>('/favorites').then((raw) => {
+            const items = unwrapList<unknown>(raw);
+            const seen = new Set<number>();
+            const movies: RecommendationMovie[] = [];
+            for (const item of items) {
+                const movie = favoriteRecordToMovie(item);
+                if (movie && !seen.has(movie.id)) {
+                    seen.add(movie.id);
+                    movies.push(movie);
+                }
+            }
+            return movies;
+        }),
+    /** POST /favorites/{movieId} — bật/tắt yêu thích. */
+    toggle: (movieId: string | number) =>
+        apiService.post<{ message?: string }>(`/favorites/${movieId}`).then((res) => {
+            const msg = (res?.message ?? '').toLowerCase();
+            if (msg.includes('removed')) {
+                return { isFavorite: false, message: res?.message };
+            }
+            if (msg.includes('added')) {
+                return { isFavorite: true, message: res?.message };
+            }
+            return { isFavorite: false, message: res?.message };
+        }),
+    listIds: () => favoritesAPI.list().then((movies) => movies.map((m) => m.id)),
+};
+
 function appendAdminUserFormFields(
     fd: FormData,
     fields: {
@@ -336,6 +391,40 @@ export const crawlAPI = {
     status: () => apiService.get<CrawlStatus>('/admin/crawl-status'),
     crawlCategory: (data: { category: string; pages?: number }) => apiService.post('/admin/crawl/category', data),
     crawlMovies: (data: { pages?: number }) => apiService.post('/admin/crawl-movies', data),
+};
+
+export type VnpayPlanId = 'monthly' | 'yearly';
+
+export type VnpayPlanInfo = {
+    amount: number;
+    days: number;
+    label: string;
+};
+
+export type VnpayCreatePaymentResult = {
+    payment_url: string;
+    order_id: string;
+};
+
+export type VnpayCallbackResult = {
+    status: 'success' | 'failed' | string;
+    message: string;
+    payment?: {
+        order_id?: string;
+        plan?: string;
+        amount?: number;
+        status?: string;
+    };
+};
+
+export const vnpayAPI = {
+    getPlans: () =>
+        apiService.get<{ data: Record<VnpayPlanId, VnpayPlanInfo> }>('/vnpay/plans'),
+    createPayment: (plan: VnpayPlanId) =>
+        apiService.post<{ data: VnpayCreatePaymentResult }>('/vnpay/create-payment', { plan }),
+    /** Xác nhận kết quả khi URL còn đủ tham số VNPay (vnp_TxnRef, vnp_SecureHash, …). */
+    callback: (params: Record<string, string>) =>
+        apiService.get<{ data: VnpayCallbackResult }>('/vnpay/callback', params),
 };
 
 export default apiService;

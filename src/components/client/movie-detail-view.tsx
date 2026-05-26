@@ -5,8 +5,11 @@ import Link from 'next/link';
 import type { PublicMovieDetail, PublicMovieEpisode } from '@/types/public-movie-detail';
 import type { PublicMovieListItem } from '@/lib/movies-public';
 import { partitionMoviesForHome } from '@/lib/home-movie-sections';
+import { Heart } from 'lucide-react';
 import { toUserErrorMessage } from '@/lib/api-error';
-import { ratingAPI } from '@/lib/api';
+import { favoritesAPI, ratingAPI } from '@/lib/api';
+import { toast } from '@/lib/toast';
+import { useAuth } from '@/hooks/useAuth';
 
 function PlayIcon({ className }: { className?: string }) {
     return (
@@ -58,9 +61,19 @@ function formatCategories(cats: string[] | null | undefined): string[] {
     return cats.filter(Boolean);
 }
 
-function formatPeople(people: string[] | null | undefined): string {
+function formatCastList(people: unknown[] | null | undefined): string {
     if (!people?.length) return '';
-    return people.filter((p) => p && String(p).trim()).join(', ');
+    return people
+        .map((p) => {
+            if (typeof p === 'string') return p.trim();
+            if (p && typeof p === 'object') {
+                const o = p as Record<string, unknown>;
+                return String(o.name ?? o.actor_name ?? o.director_name ?? '').trim();
+            }
+            return '';
+        })
+        .filter(Boolean)
+        .join(', ');
 }
 
 function isHtmlDescription(s: string): boolean {
@@ -205,6 +218,7 @@ function DetailSidebarRow({ movie }: { movie: PublicMovieListItem }) {
 }
 
 export default function MovieDetailView({ movieId }: { movieId: string }) {
+    const { token, isAuthenticated } = useAuth();
     const [movie, setMovie] = useState<PublicMovieDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -215,6 +229,8 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     const [ratingHover, setRatingHover] = useState<number | null>(null);
     const [ratingSaving, setRatingSaving] = useState(false);
     const [ratingNotice, setRatingNotice] = useState<string | null>(null);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoriteLoading, setFavoriteLoading] = useState(false);
 
     const fetchMovie = useCallback(async () => {
         setLoading(true);
@@ -281,7 +297,54 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
         };
     }, [movieId]);
 
-    const canRate = typeof window !== 'undefined' && !!localStorage.getItem('token');
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!token) {
+                if (!cancelled) setIsFavorite(false);
+                return;
+            }
+            try {
+                const ids = await favoritesAPI.listIds();
+                if (!cancelled) {
+                    setIsFavorite(ids.includes(Number(movieId)));
+                }
+            } catch {
+                if (!cancelled) setIsFavorite(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [movieId, token]);
+
+    const canRate = !!token;
+    const canFavorite = isAuthenticated && !!token;
+
+    const toggleFavorite = async () => {
+        if (!canFavorite) return;
+        setFavoriteLoading(true);
+        const prev = isFavorite;
+        setIsFavorite(!prev);
+        try {
+            const res = await favoritesAPI.toggle(movieId);
+            setIsFavorite(res.isFavorite);
+            if (res.isFavorite) {
+                toast.success('Đã thêm vào danh sách yêu thích');
+            } else {
+                toast.info('Đã bỏ khỏi danh sách yêu thích');
+            }
+        } catch (e) {
+            setIsFavorite(prev);
+            toast.error(
+                toUserErrorMessage((e as { response?: { data?: unknown } })?.response?.data ?? e, {
+                    fallback: 'Không cập nhật được yêu thích.',
+                }),
+            );
+        } finally {
+            setFavoriteLoading(false);
+        }
+    };
 
     const saveRating = async (value: number) => {
         if (!canRate) return;
@@ -386,8 +449,8 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
 
     const poster = movie.poster_url || movie.thumb_url;
     const categories = formatCategories(movie.categories);
-    const actors = formatPeople(movie.actors);
-    const directors = formatPeople(movie.directors);
+    const actors = formatCastList(movie.actors as unknown[] | null | undefined);
+    const directors = formatCastList(movie.directors as unknown[] | null | undefined);
     const desc = movie.description || '';
     const descIsHtml = isHtmlDescription(desc);
     const yearStr = movie.year != null ? String(movie.year) : '—';
@@ -439,14 +502,50 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                         </div>
                                     )}
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={playFirst}
-                                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#e50914] py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#ff0f1a]"
-                                >
-                                    <PlayIcon className="h-4 w-4" />
-                                    Xem phim
-                                </button>
+                                <div className="mt-4 flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={playFirst}
+                                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#e50914] py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#ff0f1a]"
+                                    >
+                                        <PlayIcon className="h-4 w-4" />
+                                        Xem phim
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={favoriteLoading}
+                                        onClick={() => {
+                                            if (!canFavorite) {
+                                                window.location.href = '/login';
+                                                return;
+                                            }
+                                            void toggleFavorite();
+                                        }}
+                                        className={[
+                                            'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border transition',
+                                            isFavorite
+                                                ? 'border-red-500/60 bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                                                : 'border-white/15 bg-zinc-900/80 text-zinc-400 hover:border-red-500/40 hover:text-red-400',
+                                            favoriteLoading ? 'opacity-60' : '',
+                                        ].join(' ')}
+                                        aria-label={isFavorite ? 'Bỏ yêu thích' : 'Thêm yêu thích'}
+                                        title={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích phim'}
+                                    >
+                                        <Heart
+                                            size={20}
+                                            className={isFavorite ? 'fill-current' : ''}
+                                            aria-hidden
+                                        />
+                                    </button>
+                                </div>
+                                {!canFavorite ? (
+                                    <Link
+                                        href="/login"
+                                        className="mt-2 block text-center text-[11px] text-zinc-500 hover:text-[#e50914]"
+                                    >
+                                        Đăng nhập để lưu yêu thích
+                                    </Link>
+                                ) : null}
                             </div>
 
                             <div className="min-w-0 flex-1">

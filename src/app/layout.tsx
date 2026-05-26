@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ConditionalShell } from '@/components/client/conditional-shell';
+import Providers from './providers';
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className="bg-[#0b0b0f] text-zinc-100">
       <body className={`${inter.className} min-h-screen bg-[#0b0b0f] text-zinc-100 antialiased`}>
-        <ConditionalShell>{children}</ConditionalShell>
+        <Providers>
+          <ConditionalShell>{children}</ConditionalShell>
+        </Providers>
       </body>
     </html>
   );
