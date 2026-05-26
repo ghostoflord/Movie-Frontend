@@ -295,9 +295,17 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     useEffect(() => {
         if (!movie?.episodes?.length) return;
         const epParam = searchParams.get('episode');
-        if (!epParam) return;
-        const ep = movie.episodes.find((e) => e.id === Number(epParam));
-        if (ep) setSelectedEpisode(ep);
+        if (epParam) {
+            const ep = movie.episodes.find((e) => e.id === Number(epParam));
+            if (ep) setSelectedEpisode(ep);
+            return;
+        }
+
+        // Khi vào watch=1 mà không chỉ định episode => mặc định Tập 1.
+        if (watchMode) {
+            const first = [...movie.episodes].sort((a, b) => a.episode_number - b.episode_number)[0];
+            if (first) setSelectedEpisode(first);
+        }
     }, [movie, searchParams]);
 
     useEffect(() => {
@@ -465,6 +473,11 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
         return [...movie.episodes].sort((a, b) => b.episode_number - a.episode_number);
     }, [movie]);
 
+    const episodesAsc = useMemo(() => {
+        if (!movie?.episodes?.length) return [];
+        return [...movie.episodes].sort((a, b) => a.episode_number - b.episode_number);
+    }, [movie]);
+
     const sidebarSections = useMemo(() => partitionMoviesForHome(listMovies), [listMovies]);
 
     const relatedMovies = useMemo(() => {
@@ -476,7 +489,8 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
 
     const openWatch = (episodeId?: number, resumeSeconds?: number) => {
         const params = new URLSearchParams({ watch: '1' });
-        if (episodeId) params.set('episode', String(episodeId));
+        const targetEpisodeId = episodeId ?? episodesAsc[0]?.id;
+        if (targetEpisodeId) params.set('episode', String(targetEpisodeId));
         const t = resumeSeconds ?? 0;
         if (t > 0) params.set('t', String(Math.floor(t)));
         router.push(`/phim/${movieId}?${params.toString()}`);
@@ -559,202 +573,164 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
 
                 <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
                     <div className="min-w-0 flex-1 lg:max-w-[75%]">
-                        <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-                            <div className="mx-auto w-full max-w-[200px] shrink-0 md:mx-0 md:max-w-[220px]">
-                                <div className="overflow-hidden rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
-                                    {poster ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            src={poster}
-                                            alt={movie.name}
-                                            className="aspect-[2/3] w-full object-cover"
-                                            referrerPolicy="no-referrer"
-                                        />
-                                    ) : (
-                                        <div className="flex aspect-[2/3] items-center justify-center text-zinc-600">
-                                            No poster
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="mt-4 flex flex-col gap-2">
-                                    <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => openWatch()}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#e50914] py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#ff0f1a]"
-                                    >
-                                        <PlayIcon className="h-4 w-4" />
-                                        Xem phim
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={favoriteLoading}
-                                        onClick={() => {
-                                            if (!canFavorite) {
-                                                window.location.href = '/login';
-                                                return;
-                                            }
-                                            void toggleFavorite();
-                                        }}
-                                        className={[
-                                            'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border transition',
-                                            isFavorite
-                                                ? 'border-red-500/60 bg-red-600/20 text-red-400 hover:bg-red-600/30'
-                                                : 'border-white/15 bg-zinc-900/80 text-zinc-400 hover:border-red-500/40 hover:text-red-400',
-                                            favoriteLoading ? 'opacity-60' : '',
-                                        ].join(' ')}
-                                        aria-label={isFavorite ? 'Bỏ yêu thích' : 'Thêm yêu thích'}
-                                        title={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích phim'}
-                                    >
-                                        <Heart
-                                            size={20}
-                                            className={isFavorite ? 'fill-current' : ''}
-                                            aria-hidden
-                                        />
-                                    </button>
+                        {!watchMode ? (
+                            <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+                                <div className="mx-auto w-full max-w-[200px] shrink-0 md:mx-0 md:max-w-[220px]">
+                                    <div className="overflow-hidden rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
+                                        {poster ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={poster}
+                                                alt={movie.name}
+                                                className="aspect-[2/3] w-full object-cover"
+                                                referrerPolicy="no-referrer"
+                                            />
+                                        ) : (
+                                            <div className="flex aspect-[2/3] items-center justify-center text-zinc-600">
+                                                No poster
+                                            </div>
+                                        )}
                                     </div>
-                                    {hasMovieResume && isAuthenticated ? (
-                                        <button
-                                            type="button"
-                                            disabled={continueLoading}
-                                            onClick={() => void handleContinueWatch()}
-                                            className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-60"
+                                    <div className="mt-4 flex flex-col gap-2">
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => openWatch()}
+                                                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#e50914] py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-[#ff0f1a]"
+                                            >
+                                                <PlayIcon className="h-4 w-4" />
+                                                Xem phim
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={favoriteLoading}
+                                                onClick={() => {
+                                                    if (!canFavorite) {
+                                                        window.location.href = '/login';
+                                                        return;
+                                                    }
+                                                    void toggleFavorite();
+                                                }}
+                                                className={[
+                                                    'flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border transition',
+                                                    isFavorite
+                                                        ? 'border-red-500/60 bg-red-600/20 text-red-400 hover:bg-red-600/30'
+                                                        : 'border-white/15 bg-zinc-900/80 text-zinc-400 hover:border-red-500/40 hover:text-red-400',
+                                                    favoriteLoading ? 'opacity-60' : '',
+                                                ].join(' ')}
+                                                aria-label={isFavorite ? 'Bỏ yêu thích' : 'Thêm yêu thích'}
+                                                title={isFavorite ? 'Bỏ yêu thích' : 'Yêu thích phim'}
+                                            >
+                                                <Heart
+                                                    size={20}
+                                                    className={isFavorite ? 'fill-current' : ''}
+                                                    aria-hidden
+                                                />
+                                            </button>
+                                        </div>
+                                        {hasMovieResume && isAuthenticated ? (
+                                            <button
+                                                type="button"
+                                                disabled={continueLoading}
+                                                onClick={() => void handleContinueWatch()}
+                                                className="w-full rounded-lg border border-amber-500/40 bg-amber-500/10 py-2 text-sm font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-60"
+                                            >
+                                                {continueLoading ? 'Đang tải…' : '▶ Xem tiếp'}
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                    {!canFavorite ? (
+                                        <Link
+                                            href="/login"
+                                            className="mt-2 block text-center text-[11px] text-zinc-500 hover:text-[#e50914]"
                                         >
-                                            {continueLoading ? 'Đang tải…' : '▶ Xem tiếp'}
-                                        </button>
+                                            Đăng nhập để lưu yêu thích
+                                        </Link>
                                     ) : null}
                                 </div>
-                                {!canFavorite ? (
-                                    <Link
-                                        href="/login"
-                                        className="mt-2 block text-center text-[11px] text-zinc-500 hover:text-[#e50914]"
-                                    >
-                                        Đăng nhập để lưu yêu thích
-                                    </Link>
-                                ) : null}
-                            </div>
 
-                            <div className="min-w-0 flex-1">
-                                <h1 className="text-2xl font-bold uppercase leading-tight text-amber-300 md:text-3xl">
-                                    {movie.name}
-                                </h1>
+                                <div className="min-w-0 flex-1">
+                                    <h1 className="text-2xl font-bold uppercase leading-tight text-amber-300 md:text-3xl">
+                                        {movie.name}
+                                    </h1>
 
-                                {watchMode ? (
-                                    <p className="mt-2 text-base text-white md:text-lg">
-                                        {movie.origin_name}
-                                        {yearStr !== '—' ? ` (${yearStr})` : ''}
-                                    </p>
-                                ) : (
                                     <p className="mt-3 text-sm text-zinc-500">
                                         Bấm &quot;Xem phim&quot; để mở trang phát và xem chi tiết.
                                     </p>
-                                )}
 
-                                {watchMode ? (
-                                <div className="mt-3 flex flex-wrap items-center gap-2 text-zinc-600">
-                                    <div
-                                        className="flex items-center gap-0.5"
-                                        onMouseLeave={() => setRatingHover(null)}
-                                    >
-                                        {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => {
-                                            const value10 = star * 2; // 2..10
-                                            const displayValue = ratingHover ?? myRating;
-                                            const filled = displayValue >= value10;
-                                            return (
-                                                <button
-                                                    key={star}
-                                                    type="button"
-                                                    disabled={!canRate || ratingSaving}
-                                                    onMouseEnter={() => setRatingHover(value10)}
-                                                    onFocus={() => setRatingHover(value10)}
-                                                    onClick={() => void saveRating(value10)}
-                                                    className={[
-                                                        'rounded p-0.5 transition',
-                                                        canRate ? 'hover:text-amber-200' : 'cursor-default',
-                                                        filled ? 'text-amber-300' : 'text-zinc-700',
-                                                        ratingSaving ? 'opacity-70' : '',
-                                                    ].join(' ')}
-                                                    aria-label={`Đánh giá ${value10}/10`}
-                                                >
-                                                    <span className="text-lg leading-none">★</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    <span className="ml-1 text-xs text-zinc-500">
-                                        {(myRating || 0)} / 10
-                                    </span>
-                                    {!canRate ? (
-                                        <Link href="/login" className="ml-2 text-xs font-semibold text-[#e50914] hover:underline">
-                                            Đăng nhập để đánh giá
-                                        </Link>
-                                    ) : (
-                                        <span className="ml-2 text-xs text-zinc-600">
-                                            {myRatingId ? 'Đã đánh giá' : 'Chưa đánh giá'}
+                                    <div className="mt-3 flex flex-wrap items-center gap-2 text-zinc-600">
+                                        <div
+                                            className="flex items-center gap-0.5"
+                                            onMouseLeave={() => setRatingHover(null)}
+                                        >
+                                            {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => {
+                                                const value10 = star * 2; // 2..10
+                                                const displayValue = ratingHover ?? myRating;
+                                                const filled = displayValue >= value10;
+                                                return (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        disabled={!canRate || ratingSaving}
+                                                        onMouseEnter={() => setRatingHover(value10)}
+                                                        onFocus={() => setRatingHover(value10)}
+                                                        onClick={() => void saveRating(value10)}
+                                                        className={[
+                                                            'rounded p-0.5 transition',
+                                                            canRate ? 'hover:text-amber-200' : 'cursor-default',
+                                                            filled ? 'text-amber-300' : 'text-zinc-700',
+                                                            ratingSaving ? 'opacity-70' : '',
+                                                        ].join(' ')}
+                                                        aria-label={`Đánh giá ${value10}/10`}
+                                                    >
+                                                        <span className="text-lg leading-none">★</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <span className="ml-1 text-xs text-zinc-500">
+                                            {(myRating || 0)} / 10
                                         </span>
-                                    )}
-                                    {ratingNotice ? (
-                                        <span className="w-full text-xs text-zinc-400">{ratingNotice}</span>
-                                    ) : null}
-                                </div>
-                                ) : null}
+                                        {!canRate ? (
+                                            <Link href="/login" className="ml-2 text-xs font-semibold text-[#e50914] hover:underline">
+                                                Đăng nhập để đánh giá
+                                            </Link>
+                                        ) : (
+                                            <span className="ml-2 text-xs text-zinc-600">
+                                                {myRatingId ? 'Đã đánh giá' : 'Chưa đánh giá'}
+                                            </span>
+                                        )}
+                                        {ratingNotice ? (
+                                            <span className="w-full text-xs text-zinc-400">{ratingNotice}</span>
+                                        ) : null}
+                                    </div>
 
-                                {watchMode ? (
-                                <div className="mt-5 space-y-0 border-t border-white/10 pt-3">
-                                    <MetaRow label="Trạng thái:">
-                                        <span className="font-medium text-[#e50914]">{statusLabelVi(movie.status)}</span>
-                                    </MetaRow>
-                                    <MetaRow label="Thể loại:">{genresText}</MetaRow>
-                                    <MetaRow label="Quốc gia:">{country}</MetaRow>
-                                    <MetaRow label="Năm:">{yearStr}</MetaRow>
-                                    <MetaRow label="Đạo diễn:">{directors || '—'}</MetaRow>
-                                    <MetaRow label="Diễn viên:">{actors || '—'}</MetaRow>
-                                    <MetaRow label="Thời lượng:">{durationLine}</MetaRow>
-                                    <MetaRow label="Chất lượng:">{movie.quality || '—'}</MetaRow>
-                                    <MetaRow label="Ngôn ngữ:">
-                                        {movie.language?.trim() || 'Vietsub'}
-                                    </MetaRow>
-                                    <MetaRow label="Tập:">
-                                        {movie.episode_current}
-                                        {movie.episode_total ? ` / ${movie.episode_total}` : ''}
-                                    </MetaRow>
-                                    <MetaRow label="Lượt xem:">{viewLine}</MetaRow>
+                                    <div className="mt-5 space-y-0 border-t border-white/10 pt-3">
+                                        <MetaRow label="Trạng thái:">
+                                            <span className="font-medium text-[#e50914]">{statusLabelVi(movie.status)}</span>
+                                        </MetaRow>
+                                        <MetaRow label="Thể loại:">{genresText}</MetaRow>
+                                        <MetaRow label="Quốc gia:">{country}</MetaRow>
+                                        <MetaRow label="Năm:">{yearStr}</MetaRow>
+                                        <MetaRow label="Đạo diễn:">{directors || '—'}</MetaRow>
+                                        <MetaRow label="Diễn viên:">{actors || '—'}</MetaRow>
+                                        <MetaRow label="Thời lượng:">{durationLine}</MetaRow>
+                                        <MetaRow label="Chất lượng:">{movie.quality || '—'}</MetaRow>
+                                        <MetaRow label="Ngôn ngữ:">
+                                            {movie.language?.trim() || 'Vietsub'}
+                                        </MetaRow>
+                                        <MetaRow label="Tập:">
+                                            {movie.episode_current}
+                                            {movie.episode_total ? ` / ${movie.episode_total}` : ''}
+                                        </MetaRow>
+                                        <MetaRow label="Lượt xem:">{viewLine}</MetaRow>
+                                    </div>
                                 </div>
-                                ) : null}
                             </div>
-                        </div>
+                        ) : null}
 
                         {watchMode && (
                             <section className="mt-10 border-t border-white/10 pt-8">
-                                <h2 className="mb-4 text-base font-bold uppercase tracking-wide text-amber-300 md:text-lg">
-                                    Danh sách tập phim
-                                </h2>
-                                {episodesSorted.length === 0 ? (
-                                    <p className="text-sm text-zinc-500">Chưa có tập.</p>
-                                ) : (
-                                    <div className="flex flex-wrap gap-2">
-                                        {episodesSorted.map((ep) => {
-                                            const label = ep.name?.trim() || String(ep.episode_number);
-                                            const active = selectedEpisode?.id === ep.id;
-                                            return (
-                                                <button
-                                                    key={ep.id}
-                                                    type="button"
-                                                    onClick={() => void refreshEpisodeEmbed(ep)}
-                                                    className={[
-                                                        'min-w-[3rem] rounded-lg border px-3 py-2 text-sm font-medium transition',
-                                                        active
-                                                            ? 'border-[#e50914] bg-[#e50914]/20 text-white'
-                                                            : 'border-white/10 bg-zinc-900 text-zinc-300 hover:border-white/20 hover:bg-zinc-800',
-                                                    ].join(' ')}
-                                                >
-                                                    {label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-
                                 <div id="watch-player" className="mt-8 scroll-mt-28">
                                     {resumeSeconds != null && resumeSeconds > 5 ? (
                                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-100">
@@ -793,10 +769,39 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                                         )}
                                     </div>
                                 </div>
+
+                                <h2 className="mb-4 mt-10 text-base font-bold uppercase tracking-wide text-amber-300 md:text-lg">
+                                    Danh sách tập phim
+                                </h2>
+                                {episodesAsc.length === 0 ? (
+                                    <p className="text-sm text-zinc-500">Chưa có tập.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {episodesAsc.map((ep) => {
+                                            const label = ep.name?.trim() || String(ep.episode_number);
+                                            const active = selectedEpisode?.id === ep.id;
+                                            return (
+                                                <button
+                                                    key={ep.id}
+                                                    type="button"
+                                                    onClick={() => void refreshEpisodeEmbed(ep)}
+                                                    className={[
+                                                        'min-w-[3rem] rounded-lg border px-3 py-2 text-sm font-medium transition',
+                                                        active
+                                                            ? 'border-[#e50914] bg-[#e50914]/20 text-white'
+                                                            : 'border-white/10 bg-zinc-900 text-zinc-300 hover:border-white/20 hover:bg-zinc-800',
+                                                    ].join(' ')}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </section>
                         )}
 
-                        {watchMode ? (
+                        {!watchMode ? (
                             <section className="mt-10 border-t border-white/10 pt-8">
                                 <h2 className="mb-4 text-base font-bold uppercase tracking-wide text-amber-300 md:text-lg">
                                     Nội dung phim
