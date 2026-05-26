@@ -191,7 +191,11 @@ function unwrapOne<T>(raw: unknown): T | null {
 
 export const categoryAPI = {
     list: () => apiService.get<unknown>('/categories').then(unwrapList<Category>),
-    listPaged: (params?: { page?: number; per_page?: number; name?: string }) => apiService.get<unknown>('/categories', params),
+    listPaged: (params?: { page?: number; per_page?: number; name?: string; sort?: string }) =>
+        apiService.get<unknown>('/categories', params),
+    /** Danh sách thể loại có slug + movies_count (crawl theo genre) */
+    listForCrawl: () =>
+        apiService.get<unknown>('/categories', { page: 1, per_page: 100, sort: 'label' }),
     get: (id: string | number) => apiService.get<unknown>(`/categories/${id}`).then((r) => unwrapOne<Category>(r)),
     create: (data: Partial<Category>) => apiService.post<unknown>('/categories', data).then((r) => unwrapOne<Category>(r)),
     update: (id: string | number, data: Partial<Category>) =>
