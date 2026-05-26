@@ -5,16 +5,20 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { watchHistoryAPI } from '@/lib/api';
-import { toUserErrorMessage } from '@/lib/api-error';
+import { canUseContinueWatching } from '@/lib/roles';
 import type { WatchHistoryItem } from '@/types/watch-history';
 import { WatchHistoryCard } from '@/components/client/watch-history-card';
 
 export function ContinueWatchingSection({ limit = 10 }: { limit?: number }) {
-    const { token, isAuthenticated } = useAuth();
+    const { user, token, isAuthenticated } = useAuth();
     const [items, setItems] = useState<WatchHistoryItem[]>([]);
     const [loading, setLoading] = useState(false);
 
     const load = useCallback(async () => {
+        if (!canUseContinueWatching(user?.role)) {
+            setItems([]);
+            return;
+        }
         if (!token) {
             setItems([]);
             return;
@@ -28,17 +32,17 @@ export function ContinueWatchingSection({ limit = 10 }: { limit?: number }) {
         } finally {
             setLoading(false);
         }
-    }, [token, limit]);
+    }, [token, limit, user?.role]);
 
     useEffect(() => {
-        if (isAuthenticated && token) {
+        if (isAuthenticated && token && canUseContinueWatching(user?.role)) {
             void load();
         } else {
             setItems([]);
         }
-    }, [isAuthenticated, token, load]);
+    }, [isAuthenticated, token, user?.role, load]);
 
-    if (!isAuthenticated || (!loading && items.length === 0)) {
+    if (!isAuthenticated || !canUseContinueWatching(user?.role) || (!loading && items.length === 0)) {
         return null;
     }
 

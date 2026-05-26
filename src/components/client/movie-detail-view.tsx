@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWatchProgress } from '@/hooks/useWatchProgress';
 import { formatWatchTime } from '@/lib/format-watch-time';
 import { watchHistoryResumeHref } from '@/lib/watch-resume-url';
+import { canUseContinueWatching } from '@/lib/roles';
 
 function PlayIcon({ className }: { className?: string }) {
     return (
@@ -227,7 +228,7 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const watchMode = searchParams.get('watch') === '1';
-    const { token, isAuthenticated } = useAuth();
+    const { user, token, isAuthenticated } = useAuth();
     const [movie, setMovie] = useState<PublicMovieDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -309,7 +310,7 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
     }, [movie, searchParams]);
 
     useEffect(() => {
-        if (!token || !movie?.id) {
+        if (!token || !movie?.id || !canUseContinueWatching(user?.role)) {
             setHasMovieResume(false);
             return;
         }
@@ -327,7 +328,7 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
         return () => {
             cancelled = true;
         };
-    }, [token, movie?.id]);
+    }, [token, movie?.id, user?.role]);
 
     useEffect(() => {
         let cancelled = false;

@@ -6,7 +6,7 @@ import { Calendar, Clock, Heart, Mail, Shield, Sparkles, User } from 'lucide-rea
 import { useAuth } from '@/hooks/useAuth';
 import { recommendationsAPI } from '@/lib/api';
 import { resolveUserAvatarUrl } from '@/lib/avatar';
-import { isAdminRole } from '@/lib/roles';
+import { canUseContinueWatching, isAdminRole } from '@/lib/roles';
 import { toUserErrorMessage } from '@/lib/api-error';
 import type { RecommendationMovie } from '@/types/admin-entities';
 import { MoviePosterGrid } from '@/components/client/movie-poster-grid';
@@ -183,13 +183,15 @@ export default function ProfilePage() {
                     </div>
 
                     <nav className="rounded-2xl border border-white/[0.08] bg-[#0d0d12] p-2">
-                        <Link
-                            href="/continue"
-                            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"
-                        >
-                            <Clock className="h-4 w-4 text-amber-400/80" aria-hidden />
-                            Tiếp tục xem
-                        </Link>
+                        {canUseContinueWatching(user.role) ? (
+                            <Link
+                                href="/continue"
+                                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"
+                            >
+                                <Clock className="h-4 w-4 text-amber-400/80" aria-hidden />
+                                Tiếp tục xem
+                            </Link>
+                        ) : null}
                         <Link
                             href="/favorites"
                             className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-white"

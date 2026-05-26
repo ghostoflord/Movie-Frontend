@@ -9,6 +9,8 @@ import { partitionMoviesForHome } from '@/lib/home-movie-sections';
 import { toUserErrorMessage } from '@/lib/api-error';
 import { ClientPagination } from '@/components/client/client-pagination';
 import { ContinueWatchingSection } from '@/components/client/continue-watching-section';
+import { canUseContinueWatching } from '@/lib/roles';
+import { useAuth } from '@/hooks/useAuth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -44,6 +46,7 @@ export default function HomeMovies() {
     const searchParams = useSearchParams();
     const pageRaw = searchParams.get('page') || '1';
     const page = Math.max(1, parseInt(pageRaw, 10) || 1);
+    const { user } = useAuth();
 
     const [movies, setMovies] = useState<PublicMovieListItem[]>([]);
     const [meta, setMeta] = useState<MoviesListMeta | undefined>(undefined);
@@ -120,7 +123,7 @@ export default function HomeMovies() {
             {movies.length > 0 && (
                 <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
                     <main className="min-w-0 flex-1 space-y-12">
-                        {page === 1 ? <ContinueWatchingSection /> : null}
+                        {page === 1 && canUseContinueWatching(user?.role) ? <ContinueWatchingSection /> : null}
 
                         {sections.phimBo.length > 0 && (
                             <section aria-labelledby="section-phim-bo">

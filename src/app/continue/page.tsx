@@ -6,6 +6,7 @@ import { Clock, Trash2, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { watchHistoryAPI } from '@/lib/api';
 import { toUserErrorMessage } from '@/lib/api-error';
+import { canUseContinueWatching } from '@/lib/roles';
 import type { WatchHistoryItem } from '@/types/watch-history';
 import { WatchHistoryCard } from '@/components/client/watch-history-card';
 
@@ -18,6 +19,7 @@ export default function ContinueWatchingPage() {
 
     const load = useCallback(async () => {
         if (!token) return;
+        if (!canUseContinueWatching(user?.role)) return;
         setLoading(true);
         setError(null);
         try {
@@ -33,13 +35,13 @@ export default function ContinueWatchingPage() {
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [token, user?.role]);
 
     useEffect(() => {
-        if (isAuthenticated && token) {
+        if (isAuthenticated && token && canUseContinueWatching(user?.role)) {
             void load();
         }
-    }, [isAuthenticated, token, load]);
+    }, [isAuthenticated, token, user?.role, load]);
 
     const onDeleteItem = async (item: WatchHistoryItem) => {
         if (!confirm('Xóa mục này khỏi lịch sử?')) return;
@@ -108,6 +110,27 @@ export default function ContinueWatchingPage() {
                         className="mt-6 inline-block rounded-lg bg-[#e50914] px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
                     >
                         Đăng nhập
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (!canUseContinueWatching(user.role)) {
+        return (
+            <div className="mx-auto max-w-lg px-4 py-16 text-center">
+                <div className="rounded-2xl border border-white/10 bg-[#12121a] p-10">
+                    <Clock className="mx-auto mb-4 h-10 w-10 text-amber-400" aria-hidden />
+                    <h1 className="text-xl font-bold text-white">Tiếp tục xem</h1>
+                    <p className="mt-2 text-sm text-zinc-400">
+                        Tính năng này chỉ dành cho tài khoản <span className="font-semibold text-amber-300">VIP</span> hoặc{' '}
+                        <span className="font-semibold text-amber-300">Admin</span>.
+                    </p>
+                    <Link
+                        href="/vip"
+                        className="mt-6 inline-block rounded-lg bg-amber-500 px-6 py-2.5 text-sm font-semibold text-black hover:bg-amber-400"
+                    >
+                        Nâng cấp VIP
                     </Link>
                 </div>
             </div>
