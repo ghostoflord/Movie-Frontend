@@ -44,6 +44,11 @@ export type PublicMovieComment = {
     content: string;
     created_at: string;
     user_id?: number;
+    user?: {
+        id?: number;
+        name?: string;
+        avatar?: string;
+    } | null;
     movie_id?: number;
     episode_id?: number | null;
 };

@@ -81,11 +81,31 @@ function parseComments(raw: unknown): PublicMovieComment[] {
             const content = typeof o.content === 'string' ? o.content : String(o.content ?? '');
             const created_at = typeof o.created_at === 'string' ? o.created_at : String(o.created_at ?? '');
             if (!Number.isFinite(id) || !content) return null;
+
+            const rawUser = o.user;
+            const user =
+                rawUser && typeof rawUser === 'object'
+                    ? {
+                          id:
+                              (rawUser as Record<string, unknown>).id != null
+                                  ? Number((rawUser as Record<string, unknown>).id)
+                                  : undefined,
+                          name:
+                              typeof (rawUser as Record<string, unknown>).name === 'string'
+                                  ? String((rawUser as Record<string, unknown>).name)
+                                  : undefined,
+                          avatar:
+                              typeof (rawUser as Record<string, unknown>).avatar === 'string'
+                                  ? String((rawUser as Record<string, unknown>).avatar)
+                                  : undefined,
+                      }
+                    : null;
             return {
                 id,
                 content,
                 created_at,
                 user_id: o.user_id != null ? Number(o.user_id) : undefined,
+                user,
                 movie_id: o.movie_id != null ? Number(o.movie_id) : undefined,
                 episode_id: o.episode_id == null ? null : Number(o.episode_id),
             };

@@ -8,6 +8,17 @@ import { toUserErrorMessage } from '@/lib/api-error';
 import type { PublicMovieComment } from '@/types/public-movie-detail';
 import { useAuth } from '@/hooks/useAuth';
 
+function nameInitials(name: string): string {
+    const parts = (name || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!parts.length) return '?';
+    const first = parts[0]?.[0] ?? '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
+    return (first + last).toUpperCase() || '?';
+}
+
 function formatCommentTime(iso: string): string {
     try {
         return new Date(iso).toLocaleString('vi-VN', {
@@ -26,10 +37,21 @@ function authorLabel(comment: PublicMovieComment, currentUserId?: number): strin
     if (currentUserId != null && comment.user_id === currentUserId) {
         return 'Bạn';
     }
+    const name = comment.user?.name?.trim();
+    if (name) return name;
     if (comment.user_id != null) {
         return `Thành viên #${comment.user_id}`;
     }
     return 'Khách';
+}
+
+function commentAvatarSrc(comment: PublicMovieComment, me?: { id: number; avatar?: string | null }): string | null {
+    if (me?.id != null && comment.user_id === me.id) {
+        const a = (me.avatar ?? '').trim();
+        return a ? a : null;
+    }
+    const a = (comment.user?.avatar ?? '').trim();
+    return a ? a : null;
 }
 
 export function MovieCommentsSection({
@@ -75,6 +97,13 @@ export function MovieCommentsSection({
                 content: created.content,
                 created_at: created.created_at,
                 user_id: created.user_id ?? user?.id,
+                user: user
+                    ? {
+                          id: user.id,
+                          name: user.name,
+                          avatar: user.avatar,
+                      }
+                    : null,
                 movie_id: created.movie_id ?? movieId,
                 episode_id: created.episode_id ?? null,
             };
@@ -149,9 +178,28 @@ export function MovieCommentsSection({
                             className="rounded-lg border border-white/5 bg-zinc-900/40 px-4 py-3"
                         >
                             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <span className="font-semibold text-amber-300/90">
-                                    {authorLabel(c, user?.id)}
-                                </span>
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/10 bg-zinc-800">
+                                        {commentAvatarSrc(c, user ? { id: user.id, avatar: user.avatar } : undefined) ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img
+                                                src={commentAvatarSrc(c, user ? { id: user.id, avatar: user.avatar } : undefined) ?? ''}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                                loading="lazy"
+                                                decoding="async"
+                                                referrerPolicy="no-referrer"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-200">
+                                                {nameInitials(authorLabel(c, user?.id))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span className="truncate font-semibold text-amber-300/90">
+                                        {authorLabel(c, user?.id)}
+                                    </span>
+                                </div>
                                 <time className="text-zinc-500" dateTime={c.created_at}>
                                     {formatCommentTime(c.created_at)}
                                 </time>
