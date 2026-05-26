@@ -19,17 +19,6 @@ export default function AdminWatchHistoryPage() {
     const [listLoading, setListLoading] = useState(true);
     const [listError, setListError] = useState<string | null>(null);
 
-    const [episodeId, setEpisodeId] = useState('');
-    const [currentTime, setCurrentTime] = useState('120');
-    const [duration, setDuration] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [saveResult, setSaveResult] = useState<string | null>(null);
-
-    const [lookupEpisodeId, setLookupEpisodeId] = useState('');
-    const [lookupMovieId, setLookupMovieId] = useState('');
-    const [lookupResult, setLookupResult] = useState<string | null>(null);
-    const [lookupLoading, setLookupLoading] = useState(false);
-
     const fetchList = useCallback(async () => {
         if (!token) {
             setItems([]);
@@ -58,29 +47,6 @@ export default function AdminWatchHistoryPage() {
             void fetchList();
         }
     }, [authLoading, fetchList]);
-
-    const onSubmitSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSaving(true);
-        setSaveResult(null);
-        try {
-            await watchHistoryAPI.saveProgress({
-                episode_id: Number(episodeId),
-                current_time: Number(currentTime) || 0,
-                ...(duration.trim() ? { duration_watched: Number(duration) } : {}),
-            });
-            setSaveResult('Đã lưu (upsert). Refresh danh sách bên dưới.');
-            await fetchList();
-        } catch (err) {
-            setSaveResult(
-                toUserErrorMessage((err as { response?: { data?: unknown } })?.response?.data ?? err, {
-                    fallback: 'Không lưu được tiến độ xem.',
-                }),
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const onDelete = async (item: WatchHistoryItem) => {
         if (!confirm(`Xóa lịch sử #${item.id}?`)) return;
@@ -126,48 +92,6 @@ export default function AdminWatchHistoryPage() {
         }
     };
 
-    const onLookupEpisode = async () => {
-        setLookupLoading(true);
-        setLookupResult(null);
-        try {
-            const item = await watchHistoryAPI.getByEpisode(Number(lookupEpisodeId));
-            setLookupResult(
-                item
-                    ? JSON.stringify(item, null, 2)
-                    : '404 — chưa có lịch sử tập này.',
-            );
-        } catch (e) {
-            setLookupResult(
-                toUserErrorMessage((e as { response?: { data?: unknown } })?.response?.data ?? e, {
-                    fallback: 'Lỗi GET /watch-history/episode/{id}',
-                }),
-            );
-        } finally {
-            setLookupLoading(false);
-        }
-    };
-
-    const onLookupMovie = async () => {
-        setLookupLoading(true);
-        setLookupResult(null);
-        try {
-            const item = await watchHistoryAPI.getByMovie(Number(lookupMovieId));
-            setLookupResult(
-                item
-                    ? JSON.stringify(item, null, 2)
-                    : '404 — chưa có lịch sử phim này.',
-            );
-        } catch (e) {
-            setLookupResult(
-                toUserErrorMessage((e as { response?: { data?: unknown } })?.response?.data ?? e, {
-                    fallback: 'Lỗi GET /watch-history/movie/{id}',
-                }),
-            );
-        } finally {
-            setLookupLoading(false);
-        }
-    };
-
     if (authLoading) {
         return (
             <div className="flex min-h-[40vh] items-center justify-center">
@@ -178,15 +102,13 @@ export default function AdminWatchHistoryPage() {
 
     if (!isAuthenticated || !token) {
         return (
-            <AdminErrorBox message="Cần đăng nhập (Bearer token) để xem và test lịch sử xem." />
+            <AdminErrorBox message="Cần đăng nhập (Bearer token) để xem lịch sử xem." />
         );
     }
 
     return (
         <div className="space-y-8">
-            <AdminPageHeader
-                title="Lịch sử xem / Tiếp tục xem"
-            />
+            <AdminPageHeader title="Lịch sử xem / Tiếp tục xem" />
 
             <div className="flex flex-wrap items-center gap-3">
                 <button
@@ -218,7 +140,6 @@ export default function AdminWatchHistoryPage() {
                 ) : null}
             </div>
 
-            {/* Danh sách continue */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
                     GET /watch-history/continue
@@ -232,7 +153,7 @@ export default function AdminWatchHistoryPage() {
                     </div>
                 ) : items.length === 0 ? (
                     <p className="text-sm text-zinc-500">
-                        Chưa có dữ liệu. Dùng form POST bên dưới hoặc xem phim trên site rồi refresh.
+                        Chưa có dữ liệu. Xem phim trên site (đã đăng nhập) rồi bấm Refresh.
                     </p>
                 ) : (
                     <div className="overflow-x-auto">
@@ -326,105 +247,6 @@ export default function AdminWatchHistoryPage() {
                     </div>
                 )}
             </section>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* POST test */}
-                <form
-                    onSubmit={onSubmitSave}
-                    className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"
-                >
-                    <div>
-                        <label className="mb-1 block text-sm text-zinc-400">ID Tập Phim *</label>
-                        <input
-                            value={episodeId}
-                            onChange={(e) => setEpisodeId(e.target.value)}
-                            required
-                            inputMode="numeric"
-                            className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="mb-1 block text-sm text-zinc-400">current_time (giây) *</label>
-                        <input
-                            value={currentTime}
-                            onChange={(e) => setCurrentTime(e.target.value)}
-                            required
-                            inputMode="numeric"
-                            className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="mb-1 block text-sm text-zinc-400">
-                            duration_watched (tùy chọn)
-                        </label>
-                        <input
-                            value={duration}
-                            onChange={(e) => setDuration(e.target.value)}
-                            inputMode="numeric"
-                            placeholder="Bỏ trống = BE mặc định 0"
-                            className="w-full rounded-lg border border-zinc-700 bg-black/40 px-4 py-2.5 text-white outline-none focus:border-red-500"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                    >
-                        {saving ? 'Đang lưu…' : 'Lưu tiến độ'}
-                    </button>
-                    {saveResult ? <p className="text-sm text-zinc-300">{saveResult}</p> : null}
-                </form>
-
-                {/* Lookup */}
-                <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
-                        Resume API
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                        <input
-                            value={lookupEpisodeId}
-                            onChange={(e) => setLookupEpisodeId(e.target.value)}
-                            placeholder="Episode ID"
-                            inputMode="numeric"
-                            className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-red-500"
-                        />
-                        <button
-                            type="button"
-                            disabled={lookupLoading || !lookupEpisodeId}
-                            onClick={() => void onLookupEpisode()}
-                            className="rounded-lg bg-zinc-700 px-3 py-2 text-sm text-white hover:bg-zinc-600 disabled:opacity-50"
-                        >
-                            GET episode
-                        </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        <input
-                            value={lookupMovieId}
-                            onChange={(e) => setLookupMovieId(e.target.value)}
-                            placeholder="Movie ID"
-                            inputMode="numeric"
-                            className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-red-500"
-                        />
-                        <button
-                            type="button"
-                            disabled={lookupLoading || !lookupMovieId}
-                            onClick={() => void onLookupMovie()}
-                            className="rounded-lg bg-zinc-700 px-3 py-2 text-sm text-white hover:bg-zinc-600 disabled:opacity-50"
-                        >
-                            GET movie
-                        </button>
-                    </div>
-                    {lookupResult ? (
-                        <pre className="max-h-48 overflow-auto rounded-lg border border-zinc-800 bg-black/50 p-3 text-xs text-zinc-300">
-                            {lookupResult}
-                        </pre>
-                    ) : (
-                        <p className="text-xs text-zinc-500">
-                            GET /watch-history/episode/&#123;id&#125; · GET /watch-history/movie/&#123;id&#125;
-                        </p>
-                    )}
-                </div>
-            </div>
         </div>
     );
 }

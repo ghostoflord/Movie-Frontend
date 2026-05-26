@@ -23,7 +23,9 @@ function nameInitials(name: string): string {
 
 function formatCommentTime(iso: string): string {
     try {
-        return new Date(iso).toLocaleString('vi-VN', {
+        const d = new Date(iso);
+        if (!iso || Number.isNaN(d.getTime())) return '';
+        return d.toLocaleString('vi-VN', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -169,7 +171,7 @@ export function MovieCommentsSection({
             const row: PublicMovieComment = {
                 id: created.id,
                 content: created.content,
-                created_at: created.created_at,
+                created_at: created.created_at || new Date().toISOString(),
                 likes_count: created.likes_count,
                 user_id: created.user_id ?? created.user?.id ?? user?.id,
                 user: created.user
