@@ -259,9 +259,10 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
         urlResumeSeconds,
     });
 
-    const fetchMovie = useCallback(async () => {
-        setLoading(true);
-        setError(null);
+    const fetchMovie = useCallback(
+        async ({ silent = false }: { silent?: boolean } = {}) => {
+            if (!silent) setLoading(true);
+            setError(null);
         try {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             const headers: HeadersInit = { Accept: 'application/json' };
@@ -285,12 +286,14 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
             setError('Không tải được phim. Vui lòng thử lại sau.');
             setMovie(null);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    }, [movieId]);
+        },
+        [movieId],
+    );
 
     useEffect(() => {
-        fetchMovie();
+        void fetchMovie();
     }, [fetchMovie]);
 
     useEffect(() => {
@@ -824,6 +827,10 @@ export default function MovieDetailView({ movieId }: { movieId: string }) {
                             movieId={movie.id}
                             episodeId={watchMode && selectedEpisode ? selectedEpisode.id : null}
                             initialComments={comments}
+                            onCommentAdded={() => {
+                                // Sau khi POST /comments OK, refetch /movies/{id} để UI phản ánh dữ liệu thực từ BE.
+                                void fetchMovie({ silent: true });
+                            }}
                         />
 
                         {relatedMovies.length > 0 && (
